@@ -40,9 +40,30 @@ export async function saveInquiry(inquiry: Inquiry): Promise<StoredInquiry> {
     status: "new",
     createdAt: Date.now(),
   };
-  rows.unshift(row);
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(FILE, JSON.stringify(rows, null, 2), "utf8");
+  /**
+   * Log every lead before persisting it.
+   *
+   * On serverless the JSON store lives in the instance's temp directory, so a
+   * lead written by one instance is invisible to the instance that later
+   * renders the admin inbox. The visitor is told "Sent" either way, so the
+   * lead must not be recoverable ONLY from that file - this line puts it in
+   * the platform's runtime logs as well, where it can always be retrieved.
+   *
+   * This is a safety net for the interim store, not a lead pipeline. Convex
+   * removes the need for it.
+   */
+  console.info("[lead]", JSON.stringify(row));
+
+  try {
+    rows.unshift(row);
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(FILE, JSON.stringify(rows, null, 2), "utf8");
+  } catch (error) {
+    // A failed write must never turn into an error for the visitor: the lead
+    // is already logged above, and losing the enquiry is the only real failure.
+    console.error("[lead] persist failed", error);
+  }
+
   return row;
 }
 

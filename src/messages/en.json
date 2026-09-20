@@ -382,6 +382,7 @@
     "settingsTitle": "Settings",
     "settingsIntro": "These values come from src/content/client-facts.ts. Anything unconfirmed is listed below.",
     "confirmed": "Confirmed",
-    "unconfirmed": "Not confirmed yet"
+    "unconfirmed": "Not confirmed yet",
+    "leadsEphemeral": "This preview deployment stores leads in temporary storage, so this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connecting Convex makes this list permanent."
   }
 }

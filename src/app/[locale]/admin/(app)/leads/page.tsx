@@ -3,6 +3,7 @@ import { Download, MessageCircle } from "lucide-react";
 
 import type { Locale } from "@/i18n/routing";
 import { listInquiries } from "@/lib/data/inquiries";
+import { IS_EPHEMERAL_STORE } from "@/lib/data/data-dir";
 import { whatsappLink } from "@/lib/utils";
 
 export default async function AdminLeadsPage({
@@ -32,6 +33,14 @@ export default async function AdminLeadsPage({
           </a>
         )}
       </div>
+
+      {/* An empty inbox must not be mistaken for "nobody enquired" while the
+          store is still the interim one. */}
+      {IS_EPHEMERAL_STORE && (
+        <p className="mt-6 border border-reserved/50 bg-reserved/10 px-4 py-3 text-[0.9rem] text-reserved">
+          {t("leadsEphemeral")}
+        </p>
+      )}
 
       {leads.length === 0 ? (
         <p className="mt-10 border border-sheet-edge px-6 py-16 text-center text-ink/60">
