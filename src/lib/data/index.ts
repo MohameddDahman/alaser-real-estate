@@ -10,6 +10,7 @@ import type {
   PropertyFilters,
 } from "./types";
 import { areas, type AreaSlug } from "@/content/client-facts";
+import { BLUR, galleryFor, photo } from "@/content/photos";
 
 /* ==========================================================================
    THE PUBLIC READ LAYER
@@ -61,10 +62,57 @@ export function planForProperty(property: Property): FloorPlan | null {
   return { ...base, north: northAngleFor(specs.orientation) };
 }
 
+/** Room name in both languages, for alt text and the lightbox caption. */
+const ROOM_WORDS: Record<string, { en: string; ar: string }> = {
+  reception: { en: "reception", ar: "الصالة" },
+  kitchen: { en: "kitchen", ar: "المطبخ" },
+  master: { en: "master bedroom", ar: "غرفة النوم الرئيسية" },
+  bedroom: { en: "bedroom", ar: "غرفة النوم" },
+  view: { en: "view from the balcony", ar: "الإطلالة من البلكونة" },
+  exterior: { en: "building exterior", ar: "واجهة العمارة" },
+  floor: { en: "shop floor", ar: "صالة العرض" },
+  service: { en: "service area", ar: "منطقة الخدمات" },
+  street: { en: "the street outside", ar: "الشارع بالخارج" },
+};
+
+/**
+ * Attach photography when a listing carries none of its own.
+ *
+ * Alt text is written per frame in both languages rather than left to a
+ * filename: "Reception of ALS-0412, three-bed on Kaabish" is what a screen
+ * reader and a search engine both need, and the brief makes it non-negotiable.
+ */
+function withPhotos(property: Property): Property {
+  if (property.gallery.length > 0) return property;
+
+  const specs = galleryFor(property.slug, {
+    bedrooms: property.specs.bedrooms,
+    type: property.propertyType,
+  });
+
+  const gallery = specs.map((spec, order) => {
+    const room = ROOM_WORDS[spec.room] ?? { en: spec.room, ar: spec.room };
+    return {
+      src: photo(spec.id),
+      alt: {
+        en: `${room.en[0].toUpperCase()}${room.en.slice(1)} — ${property.title.en}, ref ${property.refCode}`,
+        ar: `${room.ar} — ${property.title.ar}، كود ${property.refCode}`,
+      },
+      room: spec.room,
+      width: 1600,
+      height: 1067,
+      blurDataURL: BLUR,
+      order,
+    };
+  });
+
+  return { ...property, gallery, coverImage: gallery[0] };
+}
+
 /** Public projection. Strips anything a visitor must not receive. */
 function toPublic(property: Property): Property {
   const next: Property = {
-    ...property,
+    ...withPhotos(property),
     floorPlans: property.floorPlans.length
       ? property.floorPlans
       : ([planForProperty(property)].filter(Boolean) as FloorPlan[]),

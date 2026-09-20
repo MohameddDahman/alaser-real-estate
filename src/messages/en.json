@@ -43,7 +43,19 @@
     "planStage4": "In view",
     "closeLabel": "Ask about a unit",
     "closeTitle": "Send us the reference code",
-    "closeBody": "Every unit on this site has a code like ALS-0412. Send it on WhatsApp and you will get the floor, the papers and a viewing time — not a brochure."
+    "closeBody": "Every unit on this site has a code like ALS-0412. Send it on WhatsApp and you will get the floor, the papers and a viewing time — not a brochure.",
+    "railHint": "Keep scrolling",
+    "dissolveStage1": "The room",
+    "dissolveStage2": "The plan",
+    "dissolveStage3": "The floor",
+    "statsLabel": "What we can prove",
+    "statsTitle": "Numbers we will stand behind",
+    "statAreas": "Areas worked",
+    "statUnits": "Units listed",
+    "statTypes": "Property types",
+    "statTenure": "Tenure options",
+    "statsNote": "Four figures, all of them checkable against this site. Units sold and years active go up here once the client confirms them — not before.",
+    "areasHint": "Hover an area to see it"
   },
   "search": {
     "area": "Area",
@@ -179,7 +191,22 @@
     "bedroomsLabel": "Bedrooms",
     "bathroomsLabel": "Bathrooms",
     "pricePerMeterLabel": "Price per m²",
-    "plotRefLabel": "Plot"
+    "plotRefLabel": "Plot",
+    "room": {
+      "reception": "Reception",
+      "kitchen": "Kitchen",
+      "master": "Master bedroom",
+      "bedroom": "Bedroom",
+      "view": "The view",
+      "exterior": "Exterior",
+      "floor": "Shop floor",
+      "service": "Service area",
+      "street": "The street"
+    },
+    "daylight": "Daylight",
+    "evening": "Evening",
+    "lightToggle": "Light",
+    "placeholderPhotos": "Placeholder photography — the client's own shoots replace these before launch."
   },
   "amenities": {
     "elevator": "Lift",

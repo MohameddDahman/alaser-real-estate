@@ -5,16 +5,17 @@ import { ArrowLeft, ArrowRight, Camera, MapPin, MessageCircle } from "lucide-rea
 
 import { Link } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
-import { PlanPlate } from "@/components/plan/PlanPlate";
 import { PlanScroll } from "@/components/plan/PlanScroll";
 import { PropertyCard } from "@/components/property/PropertyCard";
+import { Gallery } from "@/components/property/Gallery";
+import { UnitHero } from "@/components/property/UnitHero";
 import { SpecTable } from "@/components/property/SpecTable";
-import { StatusBadge } from "@/components/property/StatusBadge";
 import { StickyEnquiry } from "@/components/property/StickyEnquiry";
 import { EnquiryForm } from "@/components/property/EnquiryForm";
 import { InstallmentCalculator } from "@/components/property/InstallmentCalculator";
 import { TitleBlock } from "@/components/ui/TitleBlock";
 import { Reveal } from "@/components/ui/Reveal";
+import { RevealText } from "@/components/motion/primitives";
 import {
   getAllPropertySlugs,
   getPropertyBySlug,
@@ -23,8 +24,10 @@ import {
   planNetArea,
 } from "@/lib/data";
 import { areas, office } from "@/content/client-facts";
+import { PHOTOS_ARE_PLACEHOLDERS } from "@/content/photos";
 import { waHref } from "@/lib/contact";
 import { formatNumber, formatPrice, pricePerMeter } from "@/lib/utils";
+import { SITE_URL } from "@/lib/site";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -68,11 +71,11 @@ export default async function PropertyPage({ params }: Props) {
   const t = await getTranslations("property");
   const tw = await getTranslations("whatsapp");
   const ta = await getTranslations("amenities");
-  const tc = await getTranslations("common");
 
   const related = await getRelated(property, 3);
   const area = areas.find((a) => a.slug === property.location.area);
   const plan = planForProperty(property);
+  const cover = property.coverImage ?? property.gallery[0];
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
 
   const price = property.price.onRequest
@@ -90,75 +93,58 @@ export default async function PropertyPage({ params }: Props) {
     locale,
   );
   const external = waLink.startsWith("http");
-  const hasPhotos = property.gallery.length > 0;
   const isClosed = property.status === "sold" || property.status === "rented";
 
   return (
     <>
+      {cover && (
+        <UnitHero
+          slug={property.slug}
+          refCode={property.refCode}
+          title={property.title[locale]}
+          status={property.status}
+          areaName={area?.name[locale] ?? ""}
+          tenure={t(`tenure.${property.tenure}` as "tenure.tamleek")}
+          coverSrc={cover.src}
+          coverAlt={cover.alt[locale]}
+        />
+      )}
+
       {/* pb reserves room for the sticky bar so it never covers content */}
-      <div className="pb-28 pt-28 lg:pb-0 lg:pt-36">
+      <div className="pb-28 lg:pb-0">
         <div className="mx-auto w-full max-w-[92rem] px-4 sm:px-6 lg:px-10">
           <Link
             href="/properties"
-            className="label inline-flex items-center gap-2 text-giza-dim transition-colors duration-200 hover:text-survey"
+            className="label mt-8 inline-flex items-center gap-2 text-giza-dim transition-colors duration-200 hover:text-survey"
           >
             <Arrow className="size-3.5 rotate-180" strokeWidth={1.75} aria-hidden="true" />
             {t("backToList")}
           </Link>
 
-          <header className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <StatusBadge status={property.status} />
-            <span className="label text-giza-dim" dir="ltr">
-              {t("ref")} {property.refCode}
-            </span>
-            <span className="label text-giza-dim">
-              {area?.name[locale]} · {t(`tenure.${property.tenure}` as "tenure.tamleek")}
-            </span>
-          </header>
-
-          <h1 className="mt-4 max-w-4xl text-d2 text-sheet">{property.title[locale]}</h1>
-
           {isClosed && (
-            <p className="mt-4 max-w-xl border-s-2 border-sold ps-4 text-giza-dim">
+            <p className="mt-6 max-w-xl border-s-2 border-sold ps-4 text-giza-dim">
               {t(`statusNote.${property.status}` as "statusNote.sold")}
             </p>
           )}
           {property.status === "reserved" && (
-            <p className="mt-4 max-w-xl border-s-2 border-reserved ps-4 text-giza-dim">
+            <p className="mt-6 max-w-xl border-s-2 border-reserved ps-4 text-giza-dim">
               {t("statusNote.reserved")}
             </p>
           )}
 
-          {/* Sheet + price rail ------------------------------------------ */}
           <div className="mt-10 grid gap-10 lg:grid-cols-[1.55fr_1fr] lg:gap-14">
-            <div>
-              <div className="relative aspect-[4/3] border border-navy-edge bg-navy-lift">
-                {plan && (
-                  <div className="absolute inset-0 p-8 text-survey/80 sm:p-12">
-                    <PlanPlate plan={plan} withLabels />
-                  </div>
-                )}
-                <div className="absolute inset-x-0 top-0 flex justify-between p-3">
-                  <span className="label bg-navy/70 px-2 py-1 text-giza backdrop-blur-[2px]" dir="ltr">
-                    {property.refCode}
-                  </span>
-                </div>
-              </div>
+            <div className="min-w-0">
+              <Gallery images={property.gallery} />
 
-              {!hasPhotos && (
-                <div className="mt-4 flex gap-3 border border-navy-edge p-4">
-                  <Camera className="mt-0.5 size-4 shrink-0 text-giza-dim" strokeWidth={1.5} aria-hidden="true" />
-                  <div>
-                    <p className="label text-giza">{t("galleryNoPhotos")}</p>
-                    <p className="measure mt-2 text-[0.9rem] text-giza-dim">
-                      {t("galleryNoPhotosBody")}
-                    </p>
-                  </div>
-                </div>
+              {PHOTOS_ARE_PLACEHOLDERS && (
+                <p className="mt-4 flex items-start gap-2.5 border border-reserved/40 bg-reserved/5 px-4 py-3 text-[0.85rem] text-reserved">
+                  <Camera className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                  {t("placeholderPhotos")}
+                </p>
               )}
 
               {property.highlights.length > 0 && (
-                <ul className="mt-10 space-y-3">
+                <ul className="mt-12 space-y-3">
                   {property.highlights.map((highlight) => (
                     <li key={highlight.en} className="flex gap-3 text-sheet">
                       <span aria-hidden="true" className="mt-2.5 block size-1 shrink-0 bg-survey" />
@@ -178,10 +164,10 @@ export default async function PropertyPage({ params }: Props) {
 
             {/* Price rail. Sticky on desktop; the mobile equivalent is the
                 bottom bar, so it is not duplicated here. */}
-            <aside className="lg:sticky lg:top-32 lg:self-start">
-              <div className="border border-navy-edge">
+            <aside className="lg:sticky lg:top-28 lg:self-start">
+              <div className="border border-navy-edge bg-navy-lift/70">
                 <div className="border-b border-navy-edge px-6 py-6">
-                  <p className="font-data text-[1.6rem] leading-none text-sheet tabular-nums" dir="ltr">
+                  <p className="font-data text-[1.7rem] leading-none text-sheet tabular-nums" dir="ltr">
                     {price}
                   </p>
                   {period && <p className="mt-2 text-giza-dim">{period}</p>}
@@ -235,17 +221,12 @@ export default async function PropertyPage({ params }: Props) {
                     value: property.specs.floor === "G" ? "GF" : (property.specs.floor ?? "—"),
                     numeric: true,
                   },
-                  {
-                    label: t("orientation"),
-                    value: property.specs.orientation ?? "—",
-                    numeric: true,
-                  },
+                  { label: t("orientation"), value: property.specs.orientation ?? "—", numeric: true },
                 ]}
               />
             </aside>
           </div>
 
-          {/* Measured ------------------------------------------------------ */}
           <section className="mt-20 lg:mt-28">
             <Reveal>
               <h2 className="label text-giza-dim">{t("sectionSpecs")}</h2>
@@ -262,8 +243,8 @@ export default async function PropertyPage({ params }: Props) {
             <div className="mx-auto w-full max-w-[92rem] px-4 sm:px-6 lg:px-10">
               <Reveal>
                 <h2 className="label text-giza-dim">{t("sectionPlan")}</h2>
-                <h3 className="mt-3 text-d3 text-sheet">{plan.label[locale]}</h3>
               </Reveal>
+              <RevealText as="h3" lines={[plan.label[locale]]} className="mt-3 text-d3 text-sheet" />
 
               {/* Held to a readable width: a 14 m plan stretched across a
                   92rem page is a diagram nobody can take in at a glance. */}
@@ -282,7 +263,6 @@ export default async function PropertyPage({ params }: Props) {
         )}
 
         <div className="mx-auto w-full max-w-[92rem] px-4 sm:px-6 lg:px-10">
-          {/* Amenities ---------------------------------------------------- */}
           {property.amenities.length > 0 && (
             <section className="mt-20 lg:mt-28">
               <Reveal>
@@ -299,7 +279,6 @@ export default async function PropertyPage({ params }: Props) {
             </section>
           )}
 
-          {/* Location ----------------------------------------------------- */}
           <section className="mt-20 lg:mt-28">
             <Reveal>
               <h2 className="label text-giza-dim">{t("sectionLocation")}</h2>
@@ -326,11 +305,10 @@ export default async function PropertyPage({ params }: Props) {
             </Reveal>
           </section>
 
-          {/* Calculator + enquiry ----------------------------------------- */}
           <section id="enquire" className="mt-20 scroll-mt-28 lg:mt-28">
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
               <div>
-                <h2 className="text-d3 text-sheet">{t("sectionEnquire")}</h2>
+                <RevealText as="h2" lines={[t("sectionEnquire")]} className="text-d3 text-sheet" />
                 <div className="mt-8">
                   <EnquiryForm refCode={property.refCode} title={property.title[locale]} />
                 </div>
@@ -351,23 +329,18 @@ export default async function PropertyPage({ params }: Props) {
             </div>
           </section>
 
-          {/* Related ------------------------------------------------------ */}
           {related.length > 0 && (
             <section className="mt-24 border-t border-navy-edge pt-16 lg:mt-32">
-              <h2 className="text-d3 text-sheet">
-                {t("sectionRelated", { area: area?.name[locale] ?? "" })}
-              </h2>
+              <RevealText
+                as="h2"
+                lines={[t("sectionRelated", { area: area?.name[locale] ?? "" })]}
+                className="text-d3 text-sheet"
+              />
               <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((item) => (
-                  <PropertyCard key={item._id} property={item} />
+                  <PropertyCard key={item._id} property={item} plan={planForProperty(item)} />
                 ))}
               </div>
-              <Link
-                href="/properties"
-                className="label mt-10 inline-flex items-center gap-2 text-survey"
-              >
-                {tc("viewUnit")} — {t("backToList")}
-              </Link>
             </section>
           )}
         </div>
@@ -388,7 +361,8 @@ export default async function PropertyPage({ params }: Props) {
             "@type": "RealEstateListing",
             name: property.title[locale],
             description: property.description[locale],
-            url: `https://alaser.eg/${locale}/properties/${property.slug}`,
+            url: `${SITE_URL}/${locale}/properties/${property.slug}`,
+            image: property.gallery.slice(0, 5).map((g) => g.src),
             datePosted: property.publishedAt
               ? new Date(property.publishedAt).toISOString()
               : undefined,

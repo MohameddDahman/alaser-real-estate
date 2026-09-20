@@ -50,7 +50,7 @@ export function Header() {
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-colors duration-500",
           settled || open
-            ? "bg-navy/95 backdrop-blur-[2px] border-b border-navy-edge"
+            ? "bg-navy/97 border-b border-navy-edge"
             : "border-b border-transparent",
         )}
       >

@@ -37,7 +37,7 @@ export default async function AdminLayout({
 
   return (
     <div className="on-sheet min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-sheet-edge bg-sheet/95 backdrop-blur-[2px]">
+      <header className="sticky top-0 z-30 border-b border-sheet-edge bg-sheet">
         <div className="mx-auto flex max-w-[92rem] items-center gap-4 px-4 py-3 sm:px-6">
           <Link href="/admin" className="flex items-center gap-2.5 text-ink">
             <Mark className="h-6 w-auto" />

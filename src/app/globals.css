@@ -295,3 +295,61 @@
     stroke-dashoffset: 0 !important;
   }
 }
+
+
+/* Photography ------------------------------------------------------------
+   ONE colour treatment across the entire library. This is the 'single LUT'
+   the brief asks for, and it is the reason a set of photographs taken in
+   different flats, on different days, still reads as one agency's work.
+   Applied by <Frame>; no <Image> on this site renders without it. */
+@layer components {
+  .graded {
+    filter: saturate(0.8) contrast(1.07) brightness(0.95);
+  }
+
+  /* Scrim for type sitting over a photograph. Bottom-weighted, because that
+     is where captions and titles live. */
+  .scrim::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--color-navy) 88%, transparent) 0%,
+      color-mix(in srgb, var(--color-navy) 45%, transparent) 38%,
+      transparent 72%
+    );
+  }
+
+  .scrim-full::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--color-navy) 42%, transparent);
+  }
+}
+
+@layer utilities {
+  .animate-marquee {
+    animation-name: marquee;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  /* Hides a scrollbar on a deliberately draggable rail without removing the
+     ability to scroll it. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-100%, 0, 0); }
+}

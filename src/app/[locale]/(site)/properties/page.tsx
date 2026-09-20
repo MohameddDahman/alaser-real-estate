@@ -9,7 +9,7 @@ import { FilterControls, FilterSheet, SortSelect } from "@/components/property/F
 import { ResultsShell } from "@/components/property/ResultsShell";
 import { filterCache } from "@/lib/filters.server";
 import { toPropertyFilters, type RawFilters } from "@/lib/filters";
-import { getAreaCounts, getProperties } from "@/lib/data";
+import { getAreaCounts, getProperties, planForProperty } from "@/lib/data";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -72,7 +72,12 @@ export default async function PropertiesPage({ params, searchParams }: Props) {
               ) : (
                 <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
                   {properties.map((property, i) => (
-                    <PropertyCard key={property._id} property={property} priority={i < 3} />
+                    <PropertyCard
+                      key={property._id}
+                      property={property}
+                      plan={planForProperty(property)}
+                      priority={i < 3}
+                    />
                   ))}
                 </div>
               )}

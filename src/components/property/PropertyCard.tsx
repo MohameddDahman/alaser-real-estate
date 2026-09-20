@@ -1,11 +1,12 @@
-import Image from "next/image";
-import { getLocale, getTranslations } from "next-intl/server";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import { Frame } from "@/components/motion/Frame";
 import { PlanPlate } from "@/components/plan/PlanPlate";
 import { StatusBadge } from "./StatusBadge";
-import { planForProperty } from "@/lib/data";
-import type { Property } from "@/lib/data/types";
+import type { FloorPlan, Property } from "@/lib/data/types";
 import { areas } from "@/content/client-facts";
 import { cn, formatPrice, pricePerMeter } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
@@ -13,27 +14,34 @@ import type { Locale } from "@/i18n/routing";
 /**
  * Listing card.
  *
- * Hover is CSS-only so this stays a server component with zero client JS: the
- * plate scales inside a fixed mask, and the price crossfades to "View unit".
- * Touch never fires hover, so it keeps the price and gets a pressed state
- * instead — a dead card on mobile is not acceptable when mobile is the primary
- * target.
+ * The photograph sits in a fixed mask and drifts slightly against it on
+ * scroll; on hover it scales inside that mask while the unit's own floor plan
+ * fades in over it in survey ink. That plan overlay is the card's signature -
+ * it is the thing no other agency's card does, and it tells the buyer
+ * something real about the unit before they have clicked.
+ *
+ * Touch never fires hover, so phones get a pressed state and keep the price
+ * visible instead. A dead card on mobile is not acceptable when mobile is the
+ * primary target.
  */
-export async function PropertyCard({
+export function PropertyCard({
   property,
+  plan,
   priority = false,
   className,
+  sizes,
 }: {
   property: Property;
+  plan: FloorPlan | null;
   priority?: boolean;
   className?: string;
+  sizes?: string;
 }) {
-  const locale = (await getLocale()) as Locale;
-  const t = await getTranslations("property");
-  const tc = await getTranslations("common");
+  const locale = useLocale() as Locale;
+  const t = useTranslations("property");
+  const tc = useTranslations("common");
 
   const area = areas.find((a) => a.slug === property.location.area);
-  const plan = planForProperty(property);
   const cover = property.coverImage ?? property.gallery[0];
   const isClosed = property.status === "sold" || property.status === "rented";
 
@@ -58,36 +66,40 @@ export async function PropertyCard({
         href={`/properties/${property.slug}`}
         className="block focus-visible:outline-offset-4"
       >
-        {/* Fixed mask. Whatever fills it — plan today, photograph tomorrow —
-            occupies exactly this box, so nothing shifts when photos land. */}
         <div
           className={cn(
             "relative aspect-[4/3] overflow-hidden border border-navy-edge bg-navy-lift",
-            isClosed && "opacity-70",
+            isClosed && "opacity-75 saturate-50",
           )}
         >
-          <div className="absolute inset-0 transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:scale-[1.04] group-active/card:scale-[1.02]">
-            {cover ? (
-              <Image
-                src={cover.src}
-                alt={cover.alt[locale]}
-                fill
-                priority={priority}
-                sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 30vw"
-                placeholder={cover.blurDataURL ? "blur" : undefined}
-                blurDataURL={cover.blurDataURL}
-                className="rounded-[--radius-photo] object-cover"
-              />
-            ) : plan ? (
-              <div className="absolute inset-0 p-5 text-survey/80 sm:p-6">
-                <PlanPlate plan={plan} />
-              </div>
-            ) : null}
-          </div>
+          {cover && (
+            <Frame
+              src={cover.src}
+              alt={cover.alt[locale]}
+              priority={priority}
+              sizes={sizes ?? "(max-width: 640px) 92vw, (max-width: 1024px) 48vw, 32vw"}
+              parallax={0.05}
+              className="absolute inset-0"
+              imageClassName="transition-transform duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:scale-[1.07] group-active/card:scale-[1.03]"
+            />
+          )}
+
+          {/* The plan, over its own photograph, on hover. */}
+          {plan && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center bg-navy/70 p-7 text-survey opacity-0 transition-opacity duration-500 group-hover/card:opacity-100 motion-reduce:hidden"
+            >
+              <PlanPlate plan={plan} />
+            </div>
+          )}
 
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
             <StatusBadge status={property.status} />
-            <span className="label bg-navy/70 px-2 py-1 text-giza backdrop-blur-[2px]" dir="ltr">
+            <span
+              className="label bg-navy/60 px-2.5 py-1.5 text-giza"
+              dir="ltr"
+            >
               {property.refCode}
             </span>
           </div>
@@ -110,26 +122,17 @@ export async function PropertyCard({
             {tc("sqm")}
           </p>
 
-          {/* Price crossfades to the action on pointer devices. */}
-          <div className="relative mt-4 grid border-t border-navy-edge pt-3">
-            <p className="col-start-1 row-start-1 font-data text-[0.95rem] text-sheet tabular-nums transition-opacity duration-300 group-hover/card:opacity-0 motion-reduce:group-hover/card:opacity-100">
+          <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-navy-edge pt-3">
+            <p className="font-data text-[0.95rem] text-sheet tabular-nums">
               <span dir="ltr">{price}</span>
               {period && <span className="ms-1.5 text-giza-dim">{period}</span>}
             </p>
-            <p
-              aria-hidden="true"
-              className="label col-start-1 row-start-1 self-center text-survey opacity-0 transition-opacity duration-300 group-hover/card:opacity-100 motion-reduce:hidden"
-            >
-              {tc("viewUnit")}
-            </p>
+            {perMeter && (
+              <p className="font-data text-data text-giza-dim tabular-nums" dir="ltr">
+                {perMeter} /m²
+              </p>
+            )}
           </div>
-
-          {/* Price per metre — the figure buyers here actually compare on. */}
-          {perMeter && (
-            <p className="mt-1 font-data text-data text-giza-dim tabular-nums" dir="ltr">
-              {perMeter} /m²
-            </p>
-          )}
         </div>
       </Link>
     </article>

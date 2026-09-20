@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "*.convex.cloud" },
       { protocol: "https", hostname: "*.convex.site" },
+      // Placeholder photography only - see src/content/photos.ts. Removed
+      // once the client's own shoots are in Convex storage.
+      { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
   experimental: {
