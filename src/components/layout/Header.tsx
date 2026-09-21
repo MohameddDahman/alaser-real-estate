@@ -9,7 +9,7 @@ import { Menu, X, MessageCircle } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { Mark } from "@/components/brand/Mark";
 import { LocaleSwitch } from "./LocaleSwitch";
-import { areas } from "@/content/client-facts";
+import { areas, office } from "@/content/client-facts";
 import { waHref } from "@/lib/contact";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
@@ -98,7 +98,7 @@ export function Header() {
             <LocaleSwitch className="text-giza-dim hover:text-sheet" />
 
             <a
-              href={waHref(tw("templateGeneral", { area: "Giza" }), locale)}
+              href={waHref(tw("templateGeneral", { area: office.city[locale] }), locale)}
               target={waHref("", locale).startsWith("http") ? "_blank" : undefined}
               rel="noreferrer"
               className="label hidden items-center gap-2 border border-giza-dim/50 px-3.5 py-2 text-sheet transition-colors duration-200 hover:border-survey hover:text-survey sm:inline-flex"

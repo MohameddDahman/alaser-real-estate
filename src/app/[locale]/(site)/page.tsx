@@ -12,7 +12,7 @@ import { Frame } from "@/components/motion/Frame";
 import { Counter, Magnetic, Marquee, RevealText } from "@/components/motion/primitives";
 import { Reveal, RevealItem, RevealList } from "@/components/ui/Reveal";
 import { getAreaCounts, getFeatured, getProperties, planForProperty } from "@/lib/data";
-import { areas, propertyTypes, tenures } from "@/content/client-facts";
+import { areas, office, propertyTypes, tenures } from "@/content/client-facts";
 import { LIB, photo } from "@/content/photos";
 import { waHref } from "@/lib/contact";
 
@@ -42,7 +42,7 @@ export default async function HomePage({
   const signature = featured[0] ?? all[0];
   const signaturePlan = planForProperty(signature);
   const signaturePhoto = signature.gallery[0];
-  const waLink = waHref(tw("templateGeneral", { area: "Giza" }), locale);
+  const waLink = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
 
   return (
     <>
