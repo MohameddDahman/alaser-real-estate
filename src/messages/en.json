@@ -412,6 +412,27 @@
     "unconfirmed": "Not confirmed yet",
     "leadsEphemeral": "This preview deployment stores leads in temporary storage, so this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connecting Convex makes this list permanent.",
     "previewPhotos": "Photographs, in the order they appear",
-    "photosArePlaceholder": "Placeholder photography. Replaced by real shoots of this unit before launch."
+    "photosArePlaceholder": "Placeholder photography. Replaced by real shoots of this unit before launch.",
+    "photosTitle": "Photographs",
+    "photosIntro": "Drag to reorder. The first photograph is the cover — it is what shows on the card and at the top of the unit page.",
+    "photosEmpty": "No photographs on this unit yet.",
+    "addByUrl": "Add a photograph by URL",
+    "addUrlPlaceholder": "https://…",
+    "addPhoto": "Add",
+    "addInvalid": "That is not a usable image address. It has to start with https://",
+    "addDuplicate": "That photograph is already on this unit.",
+    "coverBadge": "Cover",
+    "photoRoom": "Room",
+    "photoRoomNone": "Not set",
+    "photoAlt": "Description for screen readers and search",
+    "moveUp": "Move earlier",
+    "moveDown": "Move later",
+    "removePhoto": "Remove",
+    "confirmRemove": "Remove this photograph from the unit?",
+    "savePhotos": "Save photographs",
+    "photosSaved": "Photographs saved",
+    "photosSaveFailed": "That did not save. Try again.",
+    "uploadLater": "Uploading files straight from your computer arrives with Convex storage. Until then, paste the address of a photograph that is already online.",
+    "unsavedPhotos": "You have unsaved changes to the photographs."
   }
 }

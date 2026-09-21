@@ -192,3 +192,35 @@ export function dayNightFor(key: string): { day: string; night: string } {
     night: pick(LIB.living, s, 11),
   };
 }
+
+/**
+ * The room vocabulary, shared by the alt-text generator and the admin photo
+ * editor so the two can never drift. Controlled list, not free text - the
+ * brief is explicit that these are a vocabulary.
+ */
+export const ROOM_KEYS = [
+  "reception",
+  "kitchen",
+  "master",
+  "bedroom",
+  "view",
+  "exterior",
+  "floor",
+  "service",
+  "street",
+] as const;
+
+export type RoomKey = (typeof ROOM_KEYS)[number];
+
+/** Room name in both languages. Drives alt text AND the admin room picker. */
+export const ROOM_WORDS: Record<RoomKey, { en: string; ar: string }> = {
+  reception: { en: "reception", ar: "الصالة" },
+  kitchen: { en: "kitchen", ar: "المطبخ" },
+  master: { en: "master bedroom", ar: "غرفة النوم الرئيسية" },
+  bedroom: { en: "bedroom", ar: "غرفة النوم" },
+  view: { en: "view from the balcony", ar: "الإطلالة من البلكونة" },
+  exterior: { en: "building exterior", ar: "واجهة العمارة" },
+  floor: { en: "shop floor", ar: "صالة العرض" },
+  service: { en: "service area", ar: "منطقة الخدمات" },
+  street: { en: "the street outside", ar: "الشارع بالخارج" },
+};

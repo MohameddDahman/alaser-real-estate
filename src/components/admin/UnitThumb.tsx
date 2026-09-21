@@ -3,6 +3,7 @@ import Image from "next/image";
 import { PlanPlate } from "@/components/plan/PlanPlate";
 import { BLUR } from "@/content/photos";
 import type { FloorPlan, GalleryImage } from "@/lib/data/types";
+import { isOptimisable } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,6 +47,7 @@ export function UnitThumb({
           sizes={sizes}
           placeholder="blur"
           blurDataURL={BLUR}
+          unoptimized={!isOptimisable(image.src)}
           className="graded object-cover"
         />
       ) : plan ? (

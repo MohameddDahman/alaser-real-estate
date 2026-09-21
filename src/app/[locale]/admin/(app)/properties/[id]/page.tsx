@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { PropertyEditor } from "@/components/admin/PropertyEditor";
+import { PhotoManager } from "@/components/admin/PhotoManager";
 import { getPropertyById } from "@/lib/data/store";
 import { attachPhotos, planForProperty } from "@/lib/data";
 
@@ -58,6 +59,14 @@ export default async function AdminPropertyEditPage({
           property={property}
           plan={planForProperty(property)}
           locale={locale}
+        />
+
+        <PhotoManager
+          propertyId={property._id}
+          gallery={property.gallery}
+          titleEn={property.title.en}
+          titleAr={property.title.ar}
+          refCode={property.refCode}
         />
       </div>
     </div>

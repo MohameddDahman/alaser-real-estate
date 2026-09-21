@@ -12,7 +12,7 @@ import {
 } from "@/lib/admin-auth";
 import { getPropertyById, setStatus, updateProperty } from "@/lib/data/store";
 import type { Property, PropertyStatus } from "@/lib/data/types";
-import { missingBilingualFields } from "@/lib/data/validation";
+import { missingBilingualFields, normaliseGallery } from "@/lib/data/validation";
 
 /**
  * Every admin mutation passes through `assertAuthed` first.
@@ -114,4 +114,49 @@ export async function saveProperty(
   revalidatePath(`/[locale]/properties/${existing.slug}`, "page");
 
   return { ok: true };
+}
+
+export type GalleryState = { ok?: boolean; error?: "not-found" | "bad-payload"; count?: number };
+
+/**
+ * Persist a unit's photographs: order, cover, room labels and alt text.
+ *
+ * The first frame is always the cover, so "set cover" is just a move to the
+ * top - one concept for the client instead of two. Validation and alt-text
+ * generation happen in `normaliseGallery` on the server, so nothing the
+ * browser sends can store a broken or unlabelled image.
+ */
+export async function saveGallery(
+  _prev: GalleryState,
+  formData: FormData,
+): Promise<GalleryState> {
+  await assertAuthed();
+
+  const id = String(formData.get("id"));
+  const existing = await getPropertyById(id);
+  if (!existing) return { error: "not-found" };
+
+  let drafts: unknown;
+  try {
+    drafts = JSON.parse(String(formData.get("gallery") ?? "[]"));
+  } catch {
+    return { error: "bad-payload" };
+  }
+  if (!Array.isArray(drafts)) return { error: "bad-payload" };
+
+  const gallery = normaliseGallery(drafts, {
+    titleEn: existing.title.en,
+    titleAr: existing.title.ar,
+    refCode: existing.refCode,
+  });
+
+  await updateProperty(id, { gallery, coverImage: gallery[0] });
+
+  revalidatePath("/[locale]/admin/properties", "page");
+  revalidatePath(`/[locale]/admin/properties/${id}`, "page");
+  revalidatePath("/[locale]/properties", "page");
+  revalidatePath(`/[locale]/properties/${existing.slug}`, "page");
+  revalidatePath("/[locale]", "page");
+
+  return { ok: true, count: gallery.length };
 }

@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 
 import { BLUR } from "@/content/photos";
+import { isOptimisable } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /**
@@ -86,6 +87,7 @@ export function Frame({
             sizes={sizes}
             placeholder="blur"
             blurDataURL={BLUR}
+            unoptimized={!isOptimisable(src)}
             className={cn(
               "graded object-cover",
               rounded && "rounded-[--radius-photo]",

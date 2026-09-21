@@ -10,7 +10,7 @@ import type {
   PropertyFilters,
 } from "./types";
 import { areas, type AreaSlug } from "@/content/client-facts";
-import { BLUR, galleryFor, photo } from "@/content/photos";
+import { BLUR, galleryFor, photo, PHOTOS_ARE_PLACEHOLDERS, ROOM_WORDS, type RoomKey } from "@/content/photos";
 
 /* ==========================================================================
    THE PUBLIC READ LAYER
@@ -62,19 +62,6 @@ export function planForProperty(property: Property): FloorPlan | null {
   return { ...base, north: northAngleFor(specs.orientation) };
 }
 
-/** Room name in both languages, for alt text and the lightbox caption. */
-const ROOM_WORDS: Record<string, { en: string; ar: string }> = {
-  reception: { en: "reception", ar: "الصالة" },
-  kitchen: { en: "kitchen", ar: "المطبخ" },
-  master: { en: "master bedroom", ar: "غرفة النوم الرئيسية" },
-  bedroom: { en: "bedroom", ar: "غرفة النوم" },
-  view: { en: "view from the balcony", ar: "الإطلالة من البلكونة" },
-  exterior: { en: "building exterior", ar: "واجهة العمارة" },
-  floor: { en: "shop floor", ar: "صالة العرض" },
-  service: { en: "service area", ar: "منطقة الخدمات" },
-  street: { en: "the street outside", ar: "الشارع بالخارج" },
-};
-
 /**
  * Attach photography when a listing carries none of its own.
  *
@@ -93,6 +80,9 @@ export function attachPhotos(property: Property): Property {
 
 function withPhotos(property: Property): Property {
   if (property.gallery.length > 0) return property;
+  // Deleting every photograph must mean "no photographs", not "give me the
+  // stand-ins back", once real photography is in use.
+  if (!PHOTOS_ARE_PLACEHOLDERS) return property;
 
   const specs = galleryFor(property.slug, {
     bedrooms: property.specs.bedrooms,
@@ -100,7 +90,7 @@ function withPhotos(property: Property): Property {
   });
 
   const gallery = specs.map((spec, order) => {
-    const room = ROOM_WORDS[spec.room] ?? { en: spec.room, ar: spec.room };
+    const room = ROOM_WORDS[spec.room as RoomKey] ?? { en: spec.room, ar: spec.room };
     return {
       src: photo(spec.id),
       alt: {
