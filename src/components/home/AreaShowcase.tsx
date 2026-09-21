@@ -33,20 +33,46 @@ export function AreaShowcase({ counts }: { counts: Record<AreaSlug, number> }) {
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 260, damping: 30, mass: 0.5 });
-  const sy = useSpring(y, { stiffness: 260, damping: 30, mass: 0.5 });
+  const sx = useSpring(x, { stiffness: 400, damping: 34, mass: 0.35 });
+  const sy = useSpring(y, { stiffness: 400, damping: 34, mass: 0.35 });
+
+  /**
+   * Whether the follower has been placed since the pointer entered.
+   *
+   * Without this the spring animates from wherever it was last left - the
+   * section's top-left corner on a first hover - so the image flies across
+   * the page to reach the cursor instead of appearing under it. The first
+   * position of each entry is a `jump` (no animation); everything after it
+   * springs.
+   */
+  const placed = useRef(false);
+
+  const place = (event: React.PointerEvent) => {
+    if (reduce || event.pointerType !== "mouse" || !wrapRef.current) return;
+    const rect = wrapRef.current.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+
+    x.set(px);
+    y.set(py);
+
+    if (!placed.current) {
+      sx.jump(px);
+      sy.jump(py);
+      placed.current = true;
+    }
+  };
 
   return (
     <div
       ref={wrapRef}
       className="relative"
-      onPointerMove={(event) => {
-        if (reduce || event.pointerType !== "mouse" || !wrapRef.current) return;
-        const rect = wrapRef.current.getBoundingClientRect();
-        x.set(event.clientX - rect.left);
-        y.set(event.clientY - rect.top);
+      onPointerMove={place}
+      onPointerLeave={() => {
+        setActive(null);
+        // Next entry must place itself afresh rather than fly in from here.
+        placed.current = false;
       }}
-      onPointerLeave={() => setActive(null)}
     >
       {/* The follower. Pointer devices only. */}
       {!reduce && (
@@ -86,8 +112,13 @@ export function AreaShowcase({ counts }: { counts: Record<AreaSlug, number> }) {
           <li key={area.slug}>
             <Link
               href={{ pathname: "/properties", query: { area: area.slug } }}
-              onPointerEnter={() => setActive(area.slug)}
-              onFocus={() => setActive(area.slug)}
+              // Place before revealing, so the frame opens under the cursor
+              // rather than travelling to it. Entering a row directly from
+              // outside the section fires this before any pointermove.
+              onPointerEnter={(event) => {
+                place(event);
+                setActive(area.slug);
+              }}
               className="group relative grid gap-x-6 gap-y-3 border-b border-navy-edge py-6 transition-colors duration-500 hover:bg-navy-lift/30 sm:grid-cols-[6rem_minmax(0,14rem)_1fr_auto] sm:items-center lg:py-8"
             >
               {/* Touch thumbnail — the row must never be dead on a phone. */}
