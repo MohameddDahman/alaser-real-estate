@@ -158,8 +158,28 @@ export const office = {
 } as const;
 
 export const social = {
-  /** Page has been live since at least 21 Jan 2023. 878 followers, 292 posts. */
-  facebook: "https://www.facebook.com/", // TODO: exact page URL
+  /**
+   * Live since at least 21 Jan 2023. 878 followers, 292 posts.
+   * Stored as the canonical profile URL rather than the /share/ link the
+   * client sent: share links carry tracking parameters and expire, this one
+   * does not. Resolved from https://www.facebook.com/share/1cJZfMgyWR/
+   */
+  facebook: "https://www.facebook.com/profile.php?id=100054555335500",
+} as const;
+
+/**
+ * CONFIRMED by the client, Sept 2026.
+ *
+ * `whatsapp` is stored in the international form wa.me needs - country code,
+ * no plus, no spaces. 01095115184 -> 201095115184.
+ */
+export const contact = {
+  verified: true,
+  whatsapp: "201095115184",
+  phone: "+20 109 511 5184",
+  /** As the client writes it locally, for the tel: link and print. */
+  phoneLocal: "01095115184",
+  email: "",
 } as const;
 
 /* -------------------------------------------------------------------------
@@ -167,14 +187,6 @@ export const social = {
    and must be replaced before launch. Nothing here is rendered as a factual
    claim anywhere on the site until `verified` flips to true.
    ------------------------------------------------------------------------- */
-
-export const contact = {
-  verified: false,
-  /** Egyptian mobile, international format, no spaces - used for wa.me links. */
-  whatsapp: "201000000000",
-  phone: "+20 100 000 0000",
-  email: "",
-} as const;
 
 /**
  * The credibility strip on the home page renders ONLY the entries where
@@ -210,11 +222,6 @@ export const testimonials: Array<{
 
 export const OPEN_QUESTIONS = [
   {
-    id: "whatsapp",
-    blocking: true,
-    q: "WhatsApp number for enquiries. Every listing CTA and the sticky mobile bar deep-link to it.",
-  },
-  {
     id: "photos",
     blocking: true,
     q: "Photography. Until real shoots land, unphotographed units render their own plan in survey ink rather than stock. Shot list is in docs/shot-list.md.",
@@ -232,7 +239,8 @@ export const OPEN_QUESTIONS = [
   { id: "years", blocking: false, q: "Year founded. Page is live since Jan 2023 - is the company older?" },
   { id: "units-sold", blocking: false, q: "Units sold to date, and average days to close, if they track it." },
   { id: "team", blocking: false, q: "Team names, roles and photographs." },
-  { id: "social", blocking: false, q: "Exact Facebook page URL, plus Instagram and TikTok if they exist." },
+  { id: "social", blocking: false, q: "Instagram and TikTok, if they exist. Facebook is confirmed." },
+  { id: "email", blocking: false, q: "A business email address, if they want one shown alongside WhatsApp." },
   { id: "logo", blocking: true, q: "Vector logo (SVG/AI/EPS). Currently redrawn from a screenshot - see components/brand/Mark.tsx." },
   { id: "testimonials", blocking: false, q: "Any written recommendations. Facebook shows 0 reviews; screenshots from WhatsApp or Messenger would work." },
 ] as const;
