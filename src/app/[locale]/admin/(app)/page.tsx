@@ -4,7 +4,10 @@ import { AlertTriangle, Check } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { allProperties } from "@/lib/data/store";
+import { attachPhotos, planForProperty } from "@/lib/data";
 import { listInquiries } from "@/lib/data/inquiries";
+import { UnitThumb } from "@/components/admin/UnitThumb";
+import type { Property } from "@/lib/data/types";
 import { OPEN_QUESTIONS } from "@/content/client-facts";
 import type { PropertyStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
@@ -41,9 +44,14 @@ export default async function AdminDashboard({
 
   // The nag list: only counts units that are actually live, because an
   // incomplete draft is not a problem - an incomplete published unit is.
+  // The nag tests run against the STORED rows, before placeholder photography
+  // is attached - otherwise every unit would look photographed. Display then
+  // attaches photos so the client can see which units it is talking about.
   const live = properties.filter((p) => p.status !== "draft" && p.status !== "archived");
-  const missingArabic = live.filter((p) => !p.title.ar.trim() || !p.description.ar.trim());
-  const missingPhotos = live.filter((p) => p.gallery.length === 0);
+  const missingArabic = live
+    .filter((p) => !p.title.ar.trim() || !p.description.ar.trim())
+    .map(attachPhotos);
+  const missingPhotos = live.filter((p) => p.gallery.length === 0).map(attachPhotos);
 
   const blocking = OPEN_QUESTIONS.filter((q) => q.blocking);
   const nonBlocking = OPEN_QUESTIONS.filter((q) => !q.blocking);
@@ -96,14 +104,14 @@ export default async function AdminDashboard({
               <Nag
                 title={t("nagArabic")}
                 body={t("nagArabicBody", { count: missingArabic.length })}
-                items={missingArabic.map((p) => p.refCode)}
+                units={missingArabic}
               />
             )}
             {missingPhotos.length > 0 && (
               <Nag
                 title={t("nagPhotos")}
                 body={t("nagPhotosBody", { count: missingPhotos.length })}
-                items={missingPhotos.map((p) => p.refCode)}
+                units={missingPhotos}
               />
             )}
           </ul>
@@ -134,17 +142,42 @@ export default async function AdminDashboard({
   );
 }
 
-function Nag({ title, body, items }: { title: string; body: string; items: string[] }) {
+/**
+ * A nag names the units it is about and shows them, so the client can jump
+ * straight to the one that needs fixing instead of decoding reference codes.
+ */
+function Nag({ title, body, units }: { title: string; body: string; units: Property[] }) {
   return (
     <li className="bg-sheet px-5 py-4">
       <p className="flex items-center gap-2 font-medium text-reserved">
         <AlertTriangle className="size-4" strokeWidth={1.75} aria-hidden="true" />
         {title}
       </p>
-      <p className="mt-1.5 text-[0.92rem] text-ink/70">{body}</p>
-      <p className="mt-2 font-data text-data text-ink/50 tabular-nums" dir="ltr">
-        {items.join("  ·  ")}
-      </p>
+      <p className="measure mt-1.5 text-[0.92rem] text-ink/70">{body}</p>
+
+      <ul className="mt-4 flex flex-wrap gap-3">
+        {units.map((unit) => (
+          <li key={unit._id}>
+            <Link
+              href={`/admin/properties/${unit._id}`}
+              className="group block w-24 focus-visible:outline-offset-2"
+            >
+              <UnitThumb
+                image={unit.coverImage ?? unit.gallery[0]}
+                plan={planForProperty(unit)}
+                className="aspect-[4/3] w-full transition-opacity group-hover:opacity-80"
+                sizes="6rem"
+              />
+              <span
+                className="mt-1.5 block font-data text-[0.65rem] text-ink/55 tabular-nums"
+                dir="ltr"
+              >
+                {unit.refCode}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </li>
   );
 }

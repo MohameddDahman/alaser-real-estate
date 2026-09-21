@@ -352,10 +352,10 @@
     "needsAttention": "Needs your attention",
     "nothingToFix": "Nothing outstanding. Everything published is complete.",
     "nagArabic": "Arabic copy missing",
-    "nagPhotos": "No photographs yet",
+    "nagPhotos": "Using placeholder photography",
     "nagPlan": "No floor plan",
     "nagArabicBody": "{count} published units are missing Arabic text. Visitors on /ar see an empty field.",
-    "nagPhotosBody": "{count} units have no photographs. They currently show their plan instead.",
+    "nagPhotosBody": "{count} published units are showing stand-in photographs rather than their own. Replace them before launch — a stock interior on a real listing implies it is that flat.",
     "openQuestions": "Still needed from the client",
     "blocking": "Blocks launch",
     "nonBlocking": "Nice to have",
@@ -410,6 +410,8 @@
     "settingsIntro": "These values come from src/content/client-facts.ts. Anything unconfirmed is listed below.",
     "confirmed": "Confirmed",
     "unconfirmed": "Not confirmed yet",
-    "leadsEphemeral": "This preview deployment stores leads in temporary storage, so this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connecting Convex makes this list permanent."
+    "leadsEphemeral": "This preview deployment stores leads in temporary storage, so this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connecting Convex makes this list permanent.",
+    "previewPhotos": "Photographs, in the order they appear",
+    "photosArePlaceholder": "Placeholder photography. Replaced by real shoots of this unit before launch."
   }
 }

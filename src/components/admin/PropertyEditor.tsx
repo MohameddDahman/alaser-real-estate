@@ -4,8 +4,11 @@ import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, Check } from "lucide-react";
 
+import Image from "next/image";
+
 import { saveProperty, type SaveState } from "@/app/actions/admin";
 import { PlanPlate } from "@/components/plan/PlanPlate";
+import { BLUR, PHOTOS_ARE_PLACEHOLDERS } from "@/content/photos";
 import type { FloorPlan, Property } from "@/lib/data/types";
 import type { Locale } from "@/i18n/routing";
 import { formatPrice } from "@/lib/utils";
@@ -51,6 +54,7 @@ export function PropertyEditor({
 
   const previewTitle = locale === "ar" ? draft.titleAr : draft.titleEn;
   const previewDesc = locale === "ar" ? draft.descAr : draft.descEn;
+  const cover = property.coverImage ?? property.gallery[0];
 
   return (
     <form action={action} className="grid gap-10 lg:grid-cols-[1fr_22rem] lg:gap-12">
@@ -149,13 +153,26 @@ export function PropertyEditor({
         <div className="mt-3 border border-sheet-edge bg-navy p-4">
           <p className="label mb-3 text-giza-dim">{t("previewCard")}</p>
 
-          <div className="relative aspect-[4/3] border border-navy-edge bg-navy-lift">
-            {plan && (
+          {/* The cover photograph, because that is what a visitor sees first.
+              The plan sits behind it and shows through only when the unit has
+              no photography at all. */}
+          <div className="relative aspect-[4/3] overflow-hidden border border-navy-edge bg-navy-lift">
+            {cover ? (
+              <Image
+                src={cover.src}
+                alt=""
+                fill
+                sizes="22rem"
+                placeholder="blur"
+                blurDataURL={BLUR}
+                className="graded object-cover"
+              />
+            ) : plan ? (
               <div className="absolute inset-0 p-5 text-survey/80">
                 <PlanPlate plan={plan} />
               </div>
-            )}
-            <span className="label absolute end-3 top-3 bg-navy/70 px-2 py-1 text-giza" dir="ltr">
+            ) : null}
+            <span className="label absolute end-3 top-3 bg-navy/85 px-2 py-1 text-giza" dir="ltr">
               {property.refCode}
             </span>
           </div>
@@ -185,6 +202,49 @@ export function PropertyEditor({
             {previewDesc || "—"}
           </p>
         </div>
+
+        {/* Every frame this unit carries, in the order a visitor walks through
+            it. The client checks the set is complete from here rather than
+            opening the public page in another tab. */}
+        {property.gallery.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="label text-ink/55">{t("previewPhotos")}</h3>
+              <span className="font-data text-data text-ink/45 tabular-nums" dir="ltr">
+                {property.gallery.length}
+              </span>
+            </div>
+
+            <ul className="mt-3 grid grid-cols-4 gap-2">
+              {property.gallery.map((image, i) => (
+                <li key={image.src + i} className="relative">
+                  <span className="relative block aspect-square overflow-hidden border border-sheet-edge bg-navy">
+                    <Image
+                      src={image.src}
+                      alt={image.alt[locale]}
+                      fill
+                      sizes="5rem"
+                      placeholder="blur"
+                      blurDataURL={BLUR}
+                      className="graded object-cover"
+                    />
+                  </span>
+                  {i === 0 && (
+                    <span className="label absolute inset-x-0 bottom-0 bg-navy/85 px-1 py-0.5 text-center text-[0.55rem] text-giza">
+                      {t("previewCard")}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {PHOTOS_ARE_PLACEHOLDERS && (
+              <p className="mt-3 border border-reserved/40 bg-reserved/5 px-3 py-2 text-[0.8rem] text-reserved">
+                {t("photosArePlaceholder")}
+              </p>
+            )}
+          </div>
+        )}
       </aside>
     </form>
   );

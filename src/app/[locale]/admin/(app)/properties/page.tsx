@@ -4,7 +4,9 @@ import { ExternalLink, Pencil } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { StatusSelect } from "@/components/admin/StatusSelect";
+import { UnitThumb } from "@/components/admin/UnitThumb";
 import { allProperties } from "@/lib/data/store";
+import { attachPhotos, planForProperty } from "@/lib/data";
 import { areas } from "@/content/client-facts";
 import { formatPrice } from "@/lib/utils";
 
@@ -18,7 +20,8 @@ export default async function AdminPropertiesPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("admin");
-  const properties = await allProperties();
+  // Photography attached, so the list shows what visitors actually see.
+  const properties = (await allProperties()).map(attachPhotos);
 
   return (
     <div>
@@ -30,8 +33,8 @@ export default async function AdminPropertiesPage({
       {/* A table on a laptop, stacked cards on a phone. Same data, no
           horizontal scrolling on a device held in one hand. */}
       <div className="mt-8 border-t border-sheet-edge">
-        <div className="hidden grid-cols-[7rem_1fr_9rem_9rem_10rem_5rem] items-center gap-4 border-b border-sheet-edge py-2.5 lg:grid">
-          {(["colRef", "colTitle", "colArea", "colStatus", "colPrice", ""] as const).map(
+        <div className="hidden grid-cols-[4.5rem_6rem_minmax(0,1fr)_8rem_9rem_9rem_4.5rem] items-center gap-4 border-b border-sheet-edge py-2.5 lg:grid">
+          {(["", "colRef", "colTitle", "colArea", "colStatus", "colPrice", ""] as const).map(
             (key, i) => (
               <span key={i} className="label text-ink/50">
                 {key ? t(key) : ""}
@@ -50,48 +53,73 @@ export default async function AdminPropertiesPage({
             return (
               <li
                 key={property._id}
-                className="grid gap-x-4 gap-y-3 py-4 lg:grid-cols-[7rem_1fr_9rem_9rem_10rem_5rem] lg:items-center lg:py-2.5"
+                className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 py-4 lg:grid-cols-[4.5rem_6rem_minmax(0,1fr)_8rem_9rem_9rem_4.5rem] lg:items-center lg:py-2.5"
               >
-                <span className="font-data text-data text-ink/60 tabular-nums" dir="ltr">
-                  {property.refCode}
-                </span>
+                <Link
+                  href={`/admin/properties/${property._id}`}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  className="block"
+                >
+                  <UnitThumb
+                    image={property.coverImage ?? property.gallery[0]}
+                    plan={planForProperty(property)}
+                    count={property.gallery.length}
+                    className="aspect-[4/3] w-full"
+                    sizes="5rem"
+                  />
+                </Link>
 
-                <span className="min-w-0">
-                  <Link
-                    href={`/admin/properties/${property._id}`}
-                    className="block truncate font-medium underline-offset-4 hover:underline"
+                {/* `lg:contents` dissolves this wrapper on a laptop so its
+                    children become cells of the table grid, while on a phone
+                    it keeps them stacked beside the thumbnail. */}
+                <div className="min-w-0 space-y-2 lg:contents">
+                  <span
+                    className="block font-data text-data text-ink/60 tabular-nums"
+                    dir="ltr"
                   >
-                    {property.title[locale] || property.title.en}
-                  </Link>
-                  {!property.title.ar.trim() && (
-                    <span className="label text-danger">{t("nagArabic")}</span>
-                  )}
-                </span>
+                    {property.refCode}
+                  </span>
 
-                <span className="label text-ink/60">{area?.name[locale]}</span>
+                  <span className="block min-w-0">
+                    <Link
+                      href={`/admin/properties/${property._id}`}
+                      className="block truncate font-medium underline-offset-4 hover:underline"
+                    >
+                      {property.title[locale] || property.title.en}
+                    </Link>
+                    {!property.title.ar.trim() && (
+                      <span className="label text-danger">{t("nagArabic")}</span>
+                    )}
+                  </span>
 
-                <StatusSelect id={property._id} status={property.status} />
+                  <span className="label block text-ink/60">{area?.name[locale]}</span>
 
-                <span className="font-data text-data tabular-nums" dir="ltr">
-                  {price}
-                </span>
+                  <span className="block">
+                    <StatusSelect id={property._id} status={property.status} />
+                  </span>
 
-                <span className="flex items-center gap-1">
-                  <Link
-                    href={`/admin/properties/${property._id}`}
-                    className="flex size-11 items-center justify-center text-ink/60 transition-colors hover:text-ink"
-                  >
-                    <span className="sr-only">{t("edit")}</span>
-                    <Pencil className="size-4" strokeWidth={1.75} aria-hidden="true" />
-                  </Link>
-                  <Link
-                    href={`/properties/${property.slug}`}
-                    className="flex size-11 items-center justify-center text-ink/60 transition-colors hover:text-ink"
-                  >
-                    <span className="sr-only">{t("open")}</span>
-                    <ExternalLink className="size-4" strokeWidth={1.75} aria-hidden="true" />
-                  </Link>
-                </span>
+                  <span className="block font-data text-data tabular-nums" dir="ltr">
+                    {price}
+                  </span>
+
+                  <span className="flex items-center gap-1">
+                    <Link
+                      href={`/admin/properties/${property._id}`}
+                      className="flex size-11 items-center justify-center text-ink/60 transition-colors hover:text-ink"
+                    >
+                      <span className="sr-only">{t("edit")}</span>
+                      <Pencil className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                    </Link>
+                    <Link
+                      href={`/properties/${property.slug}`}
+                      className="flex size-11 items-center justify-center text-ink/60 transition-colors hover:text-ink"
+                    >
+                      <span className="sr-only">{t("open")}</span>
+                      <ExternalLink className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                    </Link>
+                  </span>
+                </div>
               </li>
             );
           })}

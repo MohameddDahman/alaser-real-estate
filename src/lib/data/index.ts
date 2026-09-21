@@ -81,7 +81,16 @@ const ROOM_WORDS: Record<string, { en: string; ar: string }> = {
  * Alt text is written per frame in both languages rather than left to a
  * filename: "Reception of ALS-0412, three-bed on Kaabish" is what a screen
  * reader and a search engine both need, and the brief makes it non-negotiable.
+ *
+ * Exported because the admin needs it too: the dashboard must show what
+ * visitors actually see, or its "live preview" is lying. Admin passes raw
+ * store rows through this rather than through `toPublic`, because it is
+ * entitled to drafts, archived units and owner-private location data.
  */
+export function attachPhotos(property: Property): Property {
+  return withPhotos(property);
+}
+
 function withPhotos(property: Property): Property {
   if (property.gallery.length > 0) return property;
 

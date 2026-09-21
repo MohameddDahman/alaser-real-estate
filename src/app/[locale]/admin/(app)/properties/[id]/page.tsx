@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { PropertyEditor } from "@/components/admin/PropertyEditor";
 import { getPropertyById } from "@/lib/data/store";
-import { planForProperty } from "@/lib/data";
+import { attachPhotos, planForProperty } from "@/lib/data";
 
 export default async function AdminPropertyEditPage({
   params,
@@ -17,8 +17,12 @@ export default async function AdminPropertyEditPage({
   const locale = raw as Locale;
   setRequestLocale(locale);
 
-  const property = await getPropertyById(id);
-  if (!property) notFound();
+  const stored = await getPropertyById(id);
+  if (!stored) notFound();
+
+  // The preview has to show the photography visitors get, or it is not a
+  // preview. Admin skips `toPublic` so drafts and owner-private fields stay.
+  const property = attachPhotos(stored);
 
   const t = await getTranslations("admin");
   const Arrow = locale === "ar" ? ArrowRight : ArrowLeft;
