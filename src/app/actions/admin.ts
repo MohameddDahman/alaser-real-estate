@@ -28,6 +28,21 @@ async function assertAuthed(): Promise<void> {
   }
 }
 
+/**
+ * A unit appears on nearly every page: home, listings, its own page, areas,
+ * the portfolio, and the admin. So after any change, purge from the root
+ * layout.
+ *
+ * Targeted paths are a trap here. Cache tags are built from the file path,
+ * route groups included, so "/[locale]/properties" never matches the page at
+ * "/[locale]/(site)/properties" and the site would silently stay stale until
+ * the next deploy. At this site's size, re-rendering everything on the next
+ * visit costs nothing.
+ */
+function refreshSite(): void {
+  revalidatePath("/", "layout");
+}
+
 export type SignInState = { error?: "wrong" | "unconfigured" };
 
 export async function signIn(_prev: SignInState, formData: FormData): Promise<SignInState> {
@@ -56,10 +71,7 @@ export async function changeStatus(formData: FormData): Promise<void> {
   const id = String(formData.get("id"));
   const status = String(formData.get("status")) as PropertyStatus;
   await setStatus(id, status);
-
-  revalidatePath("/[locale]/admin/properties", "page");
-  revalidatePath("/[locale]/properties", "page");
-  revalidatePath("/[locale]", "page");
+  refreshSite();
 }
 
 export type SaveState = { ok?: boolean; blocked?: string[]; error?: string };
@@ -108,10 +120,7 @@ export async function saveProperty(
   if (intent === "archive") patch.status = "archived";
 
   await updateProperty(id, patch);
-
-  revalidatePath("/[locale]/admin/properties", "page");
-  revalidatePath("/[locale]/properties", "page");
-  revalidatePath(`/[locale]/properties/${existing.slug}`, "page");
+  refreshSite();
 
   return { ok: true };
 }
@@ -151,12 +160,7 @@ export async function saveGallery(
   });
 
   await updateProperty(id, { gallery, coverImage: gallery[0] });
-
-  revalidatePath("/[locale]/admin/properties", "page");
-  revalidatePath(`/[locale]/admin/properties/${id}`, "page");
-  revalidatePath("/[locale]/properties", "page");
-  revalidatePath(`/[locale]/properties/${existing.slug}`, "page");
-  revalidatePath("/[locale]", "page");
+  refreshSite();
 
   return { ok: true, count: gallery.length };
 }
