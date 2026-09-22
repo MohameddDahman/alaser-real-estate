@@ -16,17 +16,29 @@ import { BOARD, PageSim, paper, type Material } from "./sim";
  * button, and so is the finish of a drag you let go of. The paper between
  * the hand and the spine does whatever paper does.
  *
+ * TWO WAYS TO HOLD A BOOK
+ *
+ * Open on a desk, a book is a run of sheets printed both sides: turn one and
+ * its back becomes the left page of the next spread. On a phone there is
+ * room for one page, so the book becomes a stack of single sheets, as the
+ * reference monograph does: a turned page curls away past the spine and the
+ * next lies underneath, the view never moving. The physics is the same;
+ * only what counts as a sheet differs (see `Sheet`).
+ *
  * Mirroring for a book bound on the right is done in the arithmetic, never
  * with a negative scale: a mirrored 3D context flips which faces the browser
  * thinks are facing it.
  */
 
 export type BookState = {
-  /** The spread the book is at, or committed to. 0 is closed on the cover. */
-  spread: number;
+  /** Sheets committed to the turned side - the reading position. */
+  position: number;
   /** Nothing moving. */
   settled: boolean;
 };
+
+/** One turnable sheet: the page on each face, or null for plain paper. */
+type Sheet = { front: number; back: number | null; board: boolean };
 
 type Hand = {
   t: number;
@@ -55,7 +67,7 @@ type Strip = {
 };
 
 type Leaf = {
-  /** Its place in the book; -1 for the stand-in that makes a jump. */
+  /** Its sheet; -1 for the stand-in that makes a jump. */
   index: number;
   el: HTMLDivElement;
   strips: Strip[];
@@ -69,7 +81,8 @@ type Leaf = {
 };
 
 type Drag = {
-  leaf: Leaf;
+  /** Null while a one-page book waits to see which way a finger moves. */
+  leaf: Leaf | null;
   /** The side the page was picked up from. */
   origin: 1 | -1;
   /** Height the grip started at, easing down onto the drag's own arc. */
@@ -79,11 +92,16 @@ type Drag = {
   startY: number;
   startT: number;
   moved: boolean;
-  /** Pointer position in book space, and the hand easing after it. */
+  /** Pointer x in book space when it went down. */
+  startModel: number;
+  /** Hand x = base + (pointer x - startModel) * gain. */
+  base: number;
+  gain: number;
+  /** Where the hand is heading, and the hand easing after it. */
   goalX: number;
   handX: number;
   reach: number;
-  /** Recent pointer samples, for the speed of a flick. */
+  /** Recent hand positions, for the speed of a flick. */
   trail: Array<{ t: number; x: number }>;
 };
 
@@ -94,6 +112,11 @@ const DRAG_LIFT = 0.34;
 const TURN_LIFT = 0.46;
 /** A flick this fast (page widths per second) turns the page on its own. */
 const FLICK = 0.9;
+/**
+ * Pulling the last page back on a phone: it is off the screen, so it
+ * follows the finger faster than one-to-one to sweep in from the edge.
+ */
+const PULL_GAIN = 1.6;
 /** Strips overlap by this much, so no hairline shows between them. */
 const OVERLAP = 0.75;
 /** A released page that has not landed after this long is laid down. */
@@ -122,11 +145,16 @@ export class BookEngine {
   private sources: HTMLElement[];
   private dir: 1 | -1;
   private reduced: boolean;
+  private single: boolean;
   private onChange: (s: BookState) => void;
 
+  /** Pages in the book. */
   private count: number;
+  private sheets: Sheet[];
+  /** The page left lying when every sheet is turned (a one-page book). */
+  private floor: number | null;
   private leafCount: number;
-  /** Resting side of every leaf. */
+  /** Resting side of every sheet. */
   private sides: Int8Array;
   private W = 0;
   private H = 0;
@@ -157,7 +185,7 @@ export class BookEngine {
   private raf = 0;
   private last = 0;
   private acc = 0;
-  private lastState: BookState = { spread: 0, settled: true };
+  private lastState: BookState = { position: -1, settled: true };
   private destroyed = false;
   /** Slows everything down for inspection; 1 is real time. */
   timeScale = 1;
@@ -165,16 +193,44 @@ export class BookEngine {
   constructor(
     root: HTMLElement,
     sources: HTMLElement[],
-    opts: { dir: 1 | -1; reduced: boolean; onChange: (s: BookState) => void },
+    opts: {
+      dir: 1 | -1;
+      reduced: boolean;
+      /** One page at a time: a stack of single sheets. */
+      single: boolean;
+      /** Where to open, in sheets turned. */
+      start: number;
+      onChange: (s: BookState) => void;
+    },
   ) {
     this.root = root;
     this.sources = sources;
     this.dir = opts.dir;
     this.reduced = opts.reduced;
+    this.single = opts.single;
     this.onChange = opts.onChange;
     this.count = sources.length;
-    this.leafCount = Math.floor(this.count / 2);
-    this.sides = new Int8Array(this.leafCount).fill(1);
+
+    const last = this.count - 1;
+    if (this.single) {
+      // Every page is its own sheet, printed one side; the back cover lies
+      // at the bottom and is never turned.
+      this.sheets = Array.from({ length: last }, (_, p) => ({ front: p, back: null, board: p === 0 }));
+      this.floor = last;
+    } else {
+      // Sheets printed both sides; the first and last are the boards.
+      const n = Math.floor(this.count / 2);
+      this.sheets = Array.from({ length: n }, (_, j) => ({
+        front: j * 2,
+        back: j * 2 + 1,
+        board: j === 0 || j === n - 1,
+      }));
+      this.floor = null;
+    }
+    this.leafCount = this.sheets.length;
+    const start = Math.max(0, Math.min(this.leafCount, Math.round(opts.start)));
+    this.sides = new Int8Array(this.leafCount);
+    for (let j = 0; j < this.leafCount; j++) this.sides[j] = j < start ? -1 : 1;
 
     const make = (cls: string) => {
       const el = document.createElement("div");
@@ -225,13 +281,14 @@ export class BookEngine {
       if (leaf.hand) leaf.hand.reach = leaf.hand.index * leaf.sim.seg;
       if (leaf.el.style.display !== "none") this.render(leaf);
     }
-    if (this.drag) this.drag.reach = this.drag.leaf.sim.held * this.drag.leaf.sim.seg;
+    const d = this.drag;
+    if (d?.leaf) d.reach = d.leaf.sim.held * d.leaf.sim.seg;
   }
 
   next() {
     if (this.drag) return;
     this.finishJump();
-    if (this.reduced) return this.setSpread(this.committedSpread() + 1);
+    if (this.reduced) return this.setPosition(this.position() + 1);
     if (this.hover?.side === -1) this.endHover();
     this.launch(this.forwardLeaf(), 1);
   }
@@ -239,50 +296,48 @@ export class BookEngine {
   prev() {
     if (this.drag) return;
     this.finishJump();
-    if (this.reduced) return this.setSpread(this.committedSpread() - 1);
+    if (this.reduced) return this.setPosition(this.position() - 1);
     if (this.hover?.side === 1) this.endHover();
     this.launch(this.backwardLeaf(), -1);
   }
 
   /**
-   * Go to any spread in a single turn.
+   * Go anywhere in a single turn.
    *
-   * The next spread is an ordinary turn. Further away, one stand-in leaf
-   * turns instead of every leaf between: it carries the page you are
+   * The next sheet is an ordinary turn. Further away, one stand-in leaf
+   * turns instead of every sheet between: it carries the page you are
    * looking at on the side that lifts and the page you are going to on the
    * side that lands, so it reads as the one page that takes you there -
    * and costs one page to draw, not a dozen.
    */
-  goTo(spread: number) {
-    const target = Math.max(0, Math.min(this.leafCount, Math.round(spread)));
-    const now = this.committedSpread();
+  goTo(position: number) {
+    const target = Math.max(0, Math.min(this.leafCount, Math.round(position)));
+    const now = this.position();
     if (target === now) return;
-    if (this.reduced) return this.setSpread(target);
+    if (this.reduced) return this.setPosition(target);
     if (Math.abs(target - now) === 1) return target > now ? this.next() : this.prev();
 
     // Anything already in the air is laid where it was going.
     if (this.moving.size > 0 || this.drag) this.settleAll();
-    const from = this.committedSpread();
+    const from = this.position();
     const forward = target > from;
-    const page = (p: number) => (p >= 0 && p < this.count ? p : null);
 
     // Lifting side: what is showing now. Landing side: where you are going.
-    const front = forward ? 2 * from : 2 * target;
-    const back = forward ? 2 * target - 1 : 2 * from - 1;
-    this.pinned = forward ? { turned: page(2 * from - 1) } : { unturned: page(2 * from) };
+    const front = forward ? this.frontOf(from) : this.frontOf(target);
+    const back = forward ? this.backOf(target - 1) : this.backOf(from - 1);
+    this.pinned = forward ? { turned: this.backOf(from - 1) } : { unturned: this.frontOf(from) };
     for (let j = 0; j < this.leafCount; j++) this.sides[j] = j < target ? -1 : 1;
 
-    const board = front === 0 || back === this.count - 1;
+    const board = front === 0 || (back !== null && back === this.count - 1);
     const material = board ? BOARD : paper(this.segmentsFor("jump"));
-    const { el, strips } = this.buildStrips(front, back, material);
+    const { el, strips } = this.buildStrips(front, back, material, board);
     el.style.display = "";
     this.layer.appendChild(el);
-    const start: 1 | -1 = forward ? 1 : -1;
     const leaf: Leaf = {
       index: -1,
       el,
       strips,
-      sim: new PageSim(this.W, material, start),
+      sim: new PageSim(this.W, material, forward ? 1 : -1),
       target: forward ? -1 : 1,
       hand: null,
       releasedAt: 0,
@@ -305,18 +360,10 @@ export class BookEngine {
     this.schedulePrepare();
   }
 
-  /** A jump still in the air is laid down at once when something else starts. */
-  private finishJump() {
-    const j = this.jumper;
-    if (!j) return;
-    j.sim.place(j.target);
-    this.land(j);
-  }
-
   /** Lift the cover a little and let it drop: a hint that it opens. */
   peek() {
     if (this.reduced || this.moving.size > 0 || this.drag || this.W === 0) return;
-    if (this.committedSpread() !== 0) return;
+    if (this.position() !== 0) return;
     const leaf = this.liftLeaf(0);
     leaf.target = 1;
     this.startHand(leaf, {
@@ -349,8 +396,8 @@ export class BookEngine {
   /* State                                                             */
   /* ---------------------------------------------------------------- */
 
-  /** Leaves committed to the turned side - resting or in flight. */
-  private committedSpread() {
+  /** Sheets committed to the turned side - resting or in flight. */
+  private position() {
     let s = 0;
     for (let j = 0; j < this.leafCount; j++) {
       const leaf = this.leaves.get(j);
@@ -372,16 +419,26 @@ export class BookEngine {
    * the stacks can never end up shuffled.
    */
 
-  /** The leaf a forward turn moves. */
+  /** The sheet a forward turn moves. */
   private forwardLeaf(): number | null {
-    const c = this.committedSpread();
+    const c = this.position();
     return c < this.leafCount ? c : null;
   }
 
-  /** The leaf a backward turn moves. */
+  /** The sheet a backward turn moves. */
   private backwardLeaf(): number | null {
-    const c = this.committedSpread();
+    const c = this.position();
     return c > 0 ? c - 1 : null;
+  }
+
+  /** The page on top of the unturned side with sheets 0..j-1 turned. */
+  private frontOf(j: number): number | null {
+    return j < this.leafCount ? this.sheets[j].front : this.floor;
+  }
+
+  /** The page face up on the turned side when sheet j lies there. */
+  private backOf(j: number): number | null {
+    return j >= 0 && j < this.leafCount ? this.sheets[j].back : null;
   }
 
   private isMoving(j: number) {
@@ -389,7 +446,7 @@ export class BookEngine {
     return !!leaf && this.moving.has(leaf);
   }
 
-  /** The leaf on top of the unturned stack, ignoring any in the air. */
+  /** The sheet on top of the unturned stack, ignoring any in the air. */
   private topUnturned(): number | null {
     for (let j = 0; j < this.leafCount; j++) {
       if (this.isMoving(j)) continue;
@@ -408,17 +465,17 @@ export class BookEngine {
 
   private emit() {
     const state: BookState = {
-      spread: this.committedSpread(),
+      position: this.position(),
       settled: this.moving.size === 0 && !this.drag,
     };
-    if (state.spread === this.lastState.spread && state.settled === this.lastState.settled) return;
+    if (state.position === this.lastState.position && state.settled === this.lastState.settled) return;
     this.lastState = state;
     this.onChange(state);
   }
 
-  /** Put the book at a spread with no motion at all. */
-  private setSpread(spread: number) {
-    const s = Math.max(0, Math.min(this.leafCount, spread));
+  /** Put the book at a position with no motion at all. */
+  private setPosition(position: number) {
+    const s = Math.max(0, Math.min(this.leafCount, position));
     for (let j = 0; j < this.leafCount; j++) this.sides[j] = j < s ? -1 : 1;
     this.refreshSlots();
     this.emit();
@@ -435,35 +492,64 @@ export class BookEngine {
     }
   }
 
+  /** A jump still in the air is laid down at once when something else starts. */
+  private finishJump() {
+    const j = this.jumper;
+    if (!j) return;
+    j.sim.place(j.target);
+    this.land(j);
+  }
+
   /* ---------------------------------------------------------------- */
   /* Pages                                                             */
   /* ---------------------------------------------------------------- */
 
-  /**
-   * A copy of page p, with the spine shading for the side it lies on.
-   * Even pages are fronts and lie on the unturned side; odd pages are backs.
-   */
-  private makePage(p: number): HTMLElement {
-    const node = this.sources[p].cloneNode(true) as HTMLElement;
-    // Always a whole page, whatever the box it sits in: a strip is a slice
-    // of a full page, never a squeezed one. Inline, so no utility class on
-    // the page wrapper can override it.
+  /** Which screen side a page lies on when flat. */
+  private liesRight(p: number | null) {
+    const unturnedOnRight = this.dir === 1;
+    // One-page book: every page lies on the unturned side; its blank back on
+    // the other. Two-page book: fronts (even) unturned, backs (odd) turned.
+    const onUnturned = p === null ? false : this.single ? true : p % 2 === 0;
+    return onUnturned ? unturnedOnRight : !unturnedOnRight;
+  }
+
+  /** Spine shading for the side a page lies on; boards get their own. */
+  private gutter(liesRight: boolean, hard: boolean) {
+    const gutter = document.createElement("span");
+    gutter.className = "pbook-gutter";
+    gutter.dataset.side = liesRight ? "right" : "left";
+    if (hard) gutter.dataset.hard = "";
+    return gutter;
+  }
+
+  /** Always a whole page, whatever box it sits in - inline, so no utility wins. */
+  private sizeAsPage(node: HTMLElement) {
     node.style.position = "absolute";
     node.style.top = "0";
     node.style.left = "0";
     node.style.width = "var(--pw)";
     node.style.height = "var(--ph)";
+  }
+
+  /** A copy of page p, with the spine shading for the side it lies on. */
+  private makePage(p: number): HTMLElement {
+    const node = this.sources[p].cloneNode(true) as HTMLElement;
+    this.sizeAsPage(node);
     for (const img of node.querySelectorAll("img")) {
       img.loading = "eager";
       img.decoding = "async";
     }
-    const unturnedOnRight = this.dir === 1;
-    const liesRight = p % 2 === 0 ? unturnedOnRight : !unturnedOnRight;
-    const gutter = document.createElement("span");
-    gutter.className = "pbook-gutter";
-    gutter.dataset.side = liesRight ? "right" : "left";
-    if (p === 0 || p === this.count - 1) gutter.dataset.hard = "";
-    (node.firstElementChild ?? node).appendChild(gutter);
+    const hard = p === 0 || p === this.count - 1;
+    (node.firstElementChild ?? node).appendChild(this.gutter(this.liesRight(p), hard));
+    return node;
+  }
+
+  /** The unprinted back of a one-sided sheet: plain stock, or board. */
+  private makeBlank(board: boolean): HTMLElement {
+    const node = document.createElement("div");
+    this.sizeAsPage(node);
+    node.className = board ? "bg-navy" : "pbook-paper";
+    node.appendChild(this.gutter(this.liesRight(null), board));
     return node;
   }
 
@@ -481,14 +567,18 @@ export class BookEngine {
   private refreshSlots() {
     const turned = this.topTurned();
     const unturned = this.topUnturned();
-    const turnedPage =
-      this.pinned.turned !== undefined ? this.pinned.turned : turned === null ? null : turned * 2 + 1;
+    // A one-page book shows nothing on the turned side: it is off the page.
+    const turnedPage = this.single
+      ? null
+      : this.pinned.turned !== undefined
+        ? this.pinned.turned
+        : turned === null
+          ? null
+          : this.backOf(turned);
     const unturnedPage =
       this.pinned.unturned !== undefined
         ? this.pinned.unturned
-        : unturned === null
-          ? null
-          : unturned * 2;
+        : this.frontOf(unturned ?? this.leafCount);
     const left = this.dir === 1 ? turnedPage : unturnedPage;
     const right = this.dir === 1 ? unturnedPage : turnedPage;
     this.fill(this.slotLeft, this.shadowLeft, left, "left");
@@ -512,18 +602,18 @@ export class BookEngine {
   /* ---------------------------------------------------------------- */
 
   private isBoard(j: number) {
-    return j === 0 || j === this.leafCount - 1;
+    return this.sheets[j].board;
   }
 
   /**
-   * How many strips a page is cut into: about one per 30px of page, enough
-   * for a smooth curl and no more - every strip is two more copies of a
+   * How many strips a page is cut into: about one per 34px of page, enough
+   * for a smooth curl and no more - every strip is another copy or two of a
    * page to build. The stand-in of a jump turns fast and gets fewer.
    */
   private segmentsFor(use: "page" | "jump") {
     const W = this.W || 480;
     return use === "page"
-      ? Math.max(10, Math.min(16, Math.round(W / 30)))
+      ? Math.max(8, Math.min(16, Math.round(W / 34)))
       : Math.max(8, Math.min(12, Math.round(W / 44)));
   }
 
@@ -562,10 +652,10 @@ export class BookEngine {
         }
         built = true;
       }
-      // Warm the flat copies that turning this leaf will reveal, so the
+      // Warm the flat copies that turning this sheet will reveal, so the
       // landing frame only swaps nodes and never has to clone one.
-      for (const p of [j * 2 - 1, j * 2 + 1, j * 2 + 2]) {
-        if (p >= 0 && p < this.count) this.slotPage(p);
+      for (const p of [this.frontOf(j), this.frontOf(j + 1), this.backOf(j), this.backOf(j - 1)]) {
+        if (p !== null) this.slotPage(p);
       }
       const leaf = this.buildLeaf(j);
       if (this.moving.has(leaf)) continue;
@@ -588,7 +678,7 @@ export class BookEngine {
     }
   }
 
-  /** Build the strips for leaf j, once. */
+  /** Build the strips for sheet j, once. */
   private buildLeaf(j: number): Leaf {
     const cached = this.leaves.get(j);
     if (cached) {
@@ -598,8 +688,9 @@ export class BookEngine {
       return cached;
     }
 
-    const material: Material = this.isBoard(j) ? BOARD : paper(this.segmentsFor("page"));
-    const { el, strips } = this.buildStrips(j * 2, j * 2 + 1, material);
+    const sheet = this.sheets[j];
+    const material: Material = sheet.board ? BOARD : paper(this.segmentsFor("page"));
+    const { el, strips } = this.buildStrips(sheet.front, sheet.back, material, sheet.board);
     el.style.display = "none";
     this.layer.appendChild(el);
     const side: 1 | -1 = this.sides[j] === -1 ? -1 : 1;
@@ -617,8 +708,8 @@ export class BookEngine {
     return leaf;
   }
 
-  /** A leaf's strips: page `front` on one side, page `back` on the other. */
-  private buildStrips(front: number, back: number, material: Material) {
+  /** A leaf's strips: page `front` on one side, page `back` (or blank) on the other. */
+  private buildStrips(front: number | null, back: number | null, material: Material, board: boolean) {
     const n = material.segments;
     const el = document.createElement("div");
     el.className = "pbook-leaf";
@@ -637,8 +728,8 @@ export class BookEngine {
       // spine and which "far" swaps with the binding.
       const near = `calc(var(--pw) * ${-i / n})`;
       const far = `calc(var(--pw) * ${(i + 1) / n - 1} + ${ov}px)`;
-      const f = this.face(front, rtl ? far : near, false);
-      const b = this.face(back, rtl ? near : far, true);
+      const f = this.face(front, rtl ? far : near, false, board);
+      const b = this.face(back, rtl ? near : far, true, board);
       strip.append(f.face, b.face);
       el.appendChild(strip);
       strips.push({ el: strip, frontShade: f.shade, backShade: b.shade });
@@ -646,11 +737,11 @@ export class BookEngine {
     return { el, strips };
   }
 
-  private face(page: number, offset: string, back: boolean) {
+  private face(page: number | null, offset: string, back: boolean, board: boolean) {
     const face = document.createElement("div");
     face.className = "pbook-face";
     if (back) face.dataset.back = "";
-    const content = this.makePage(page);
+    const content = page === null ? this.makeBlank(board) : this.makePage(page);
     content.style.transform = `translateX(${offset})`;
     const shade = document.createElement("div");
     shade.className = "pbook-shade";
@@ -658,7 +749,7 @@ export class BookEngine {
     return { face, shade };
   }
 
-  /** Take leaf j off its stack and into the air. */
+  /** Take sheet j off its stack and into the air. */
   private liftLeaf(j: number): Leaf {
     const leaf = this.buildLeaf(j);
     if (this.moving.has(leaf)) return leaf;
@@ -695,7 +786,7 @@ export class BookEngine {
     return Math.acos(Math.max(-1, Math.min(1, leaf.sim.px[index] / reach)));
   }
 
-  /** Turn leaf j over, the way a hand flips a page. */
+  /** Turn sheet j over, the way a hand flips a page. */
   private launch(j: number | null, from: 1 | -1, duration?: number) {
     if (j === null) return;
     // Resting, lifted under the mouse, or still in the air: same page.
@@ -767,47 +858,94 @@ export class BookEngine {
     if (this.reduced || this.drag || e.button !== 0 || this.W === 0) return;
     this.finishJump();
     const x = this.toBook(e.clientX);
-    const side: 1 | -1 = x >= 0 ? 1 : -1;
+    const t = performance.now();
 
+    if (this.single) {
+      // One page on screen, and a finger could mean either direction: wait
+      // for the first real movement to say which (see onPointerMove).
+      if (x < -this.W * 0.02) return;
+      this.endHoverIfOther(1);
+      this.drag = {
+        leaf: null,
+        origin: 1,
+        zFloor: 0,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startT: t,
+        moved: false,
+        startModel: x,
+        base: x,
+        gain: 1,
+        goalX: x,
+        handX: x,
+        reach: this.W,
+        trail: [{ t, x }],
+      };
+      this.capture(e.pointerId);
+      return;
+    }
+
+    const side: 1 | -1 = x >= 0 ? 1 : -1;
     // The page that turns from this side - resting, lifted under the mouse,
     // or still in the air, in which case it is caught.
     const j = side === 1 ? this.forwardLeaf() : this.backwardLeaf();
     if (j === null) return;
+    this.endHoverIfOther(j);
+    this.grab(j, side, x, e, t, 1);
+    this.capture(e.pointerId);
+    this.emit();
+    this.start();
+  }
+
+  private capture(pointerId: number) {
+    try {
+      this.root.setPointerCapture(pointerId);
+    } catch {
+      /* capture is a nicety */
+    }
+  }
+
+  private endHoverIfOther(j: number) {
     if (this.hover && this.hover.leaf.index !== j) this.endHover();
+  }
+
+  /**
+   * Take hold of sheet j where the pointer is. `gain` is how far the hand
+   * travels per pixel of pointer - more than one when the page being pulled
+   * is off the screen and has to sweep in.
+   */
+  private grab(j: number, origin: 1 | -1, x: number, e: PointerEvent, t: number, gain: number) {
     const leaf = this.liftLeaf(j);
     if (this.hover?.leaf === leaf) this.hover = null;
     leaf.hand = null;
     leaf.releasedAt = 0;
-
     const n = leaf.sim.n;
-    // Held where it was touched: nearer the spine, the less leverage.
-    const index = Math.max(1, Math.min(n, Math.round(Math.abs(x) / leaf.sim.seg)));
+    // Held where it was touched: nearer the spine, the less leverage. A page
+    // pulled back from off the screen is held by its edge.
+    const index = gain === 1 ? Math.max(1, Math.min(n, Math.round(Math.abs(x) / leaf.sim.seg))) : n;
     const reach = index * leaf.sim.seg;
     const hx = leaf.sim.px[index];
     const hz = leaf.sim.pz[index];
     leaf.sim.hold(index, hx, hz);
-    const t = performance.now();
+    const prev = this.drag;
     this.drag = {
       leaf,
-      origin: side,
+      origin,
       zFloor: hz,
       pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startT: t,
-      moved: false,
+      startX: prev?.startX ?? e.clientX,
+      startY: prev?.startY ?? e.clientY,
+      startT: prev?.startT ?? t,
+      moved: prev?.moved ?? false,
+      startModel: x,
+      base: hx,
+      gain,
       goalX: hx,
       handX: hx,
       reach,
       trail: [{ t, x: hx }],
     };
-    try {
-      this.root.setPointerCapture(e.pointerId);
-    } catch {
-      /* capture is a nicety */
-    }
-    this.emit();
-    this.start();
   }
 
   private onPointerLeave() {
@@ -815,8 +953,8 @@ export class BookEngine {
   }
 
   /**
-   * Near the outer edge of a page, the mouse lifts its corner a little -
-   * the way a page rises to meet a thumb - and lets it fall when it moves on.
+   * Near the outer edge of a page, the mouse lifts it a little - the way a
+   * page rises to meet a thumb - and lets it fall when it moves on.
    */
   private onHover(e: PointerEvent) {
     if (this.reduced || e.pointerType !== "mouse" || e.buttons !== 0 || this.W === 0) return;
@@ -827,7 +965,9 @@ export class BookEngine {
       e.clientY >= rect.top &&
       e.clientY <= rect.bottom &&
       Math.abs(x) > this.W * (1 - HOVER_BAND) &&
-      Math.abs(x) <= this.W * 1.02;
+      Math.abs(x) <= this.W * 1.02 &&
+      // A one-page book has nothing to lift on the far side.
+      !(this.single && side === -1);
     if (!near) return this.endHover();
     if (this.hover?.side === side) return;
     this.endHover();
@@ -877,8 +1017,33 @@ export class BookEngine {
     const d = this.drag;
     if (!d) return this.onHover(e);
     if (e.pointerId !== d.pointerId) return;
-    if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 6) d.moved = true;
-    d.goalX = this.toBook(e.clientX);
+    const x = this.toBook(e.clientX);
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) > 6) d.moved = true;
+
+    if (!d.leaf) {
+      // A one-page book deciding: a mostly vertical move is a scroll, not a
+      // turn; toward the spine turns this page; away from it pulls back the
+      // one before, which sweeps in from off the screen.
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        this.drag = null;
+        return;
+      }
+      const forward = x < d.startModel;
+      const j = forward ? this.forwardLeaf() : this.backwardLeaf();
+      if (j === null) {
+        this.drag = null;
+        return;
+      }
+      this.grab(j, forward ? 1 : -1, forward ? d.startModel : x, e, performance.now(), forward ? 1 : PULL_GAIN);
+      this.emit();
+      this.start();
+      return;
+    }
+
+    d.goalX = d.base + (x - d.startModel) * d.gain;
     const t = performance.now();
     d.trail.push({ t, x: d.goalX });
     while (d.trail.length > 2 && t - d.trail[0].t > 100) d.trail.shift();
@@ -888,10 +1053,22 @@ export class BookEngine {
     const d = this.drag;
     if (!d || e.pointerId !== d.pointerId) return;
     this.drag = null;
+    const quick = performance.now() - d.startT < 400;
+    const tap = !d.moved && e.type === "pointerup" && quick;
+
+    if (!d.leaf) {
+      // A one-page book, and no drag ever began: a tap. Near the spine goes
+      // back, anywhere else goes on - as on any reader.
+      if (tap) {
+        if (d.startModel < this.W * 0.3) this.prev();
+        else this.next();
+      }
+      return;
+    }
+
     const leaf = d.leaf;
     const board = leaf.sim.n === 1;
-
-    if (!d.moved && e.type === "pointerup" && performance.now() - d.startT < 400) {
+    if (tap) {
       // A tap on a page turns it, by its edge, like the button.
       leaf.target = d.origin === 1 ? -1 : 1;
       this.startHand(leaf, {
@@ -907,17 +1084,19 @@ export class BookEngine {
       return;
     }
 
-    // Let go: over the spine, or flicked toward it, and the page goes over;
-    // otherwise it falls back. Either way a hand sees it home.
+    // Let go. Over the spine (on a phone, past the middle of the page), or
+    // flicked that way, and the page goes over; otherwise it falls back.
+    // Either way a hand sees it home.
     const first = d.trail[0];
     const lastSample = d.trail[d.trail.length - 1];
     const dt = Math.max(0.016, (lastSample.t - first.t) / 1000);
     const speed = (lastSample.x - first.x) / dt / this.W;
     const x = leaf.sim.px[leaf.sim.held];
-    const over = d.origin * x < 0 || d.origin * speed < -FLICK;
+    const reach = leaf.sim.held * leaf.sim.seg;
+    const line = this.single ? (d.origin === 1 ? 0.45 : -0.55) * reach : 0;
+    const over = d.origin === 1 ? x < line || speed < -FLICK : x > line || speed > FLICK;
     const dest: 1 | -1 = over ? (d.origin === 1 ? -1 : 1) : d.origin;
     leaf.target = dest;
-    const reach = leaf.sim.held * leaf.sim.seg;
     const phi0 = Math.acos(Math.max(-1, Math.min(1, x / reach)));
     const phi1 = dest === 1 ? 0 : Math.PI;
     this.startHand(leaf, {
@@ -951,10 +1130,10 @@ export class BookEngine {
     this.last = now;
     this.acc += elapsed;
 
-    const d = this.drag;
+    const d = this.drag?.leaf ? this.drag : null;
     while (this.acc >= DT) {
       this.acc -= DT;
-      if (d) {
+      if (d?.leaf) {
         // The hand follows the pointer closely, not rigidly: a few
         // milliseconds of lag is what makes the page feel held, not glued.
         d.handX += (d.goalX - d.handX) * 0.3;
@@ -1002,7 +1181,7 @@ export class BookEngine {
       this.hover.leaf.hand.t >= this.hover.leaf.hand.duration &&
       this.hover.leaf.sim.quiet();
 
-    if ((this.moving.size > 0 || this.drag) && !resting) {
+    if ((this.moving.size > 0 || this.drag?.leaf) && !resting) {
       this.raf = requestAnimationFrame(this.tick);
     } else {
       this.renderShadows();

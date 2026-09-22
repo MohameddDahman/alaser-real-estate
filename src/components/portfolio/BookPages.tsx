@@ -122,7 +122,7 @@ function Folio({ n, label }: { n: number; label: string }) {
   return (
     <p
       className={cn(
-        "label absolute bottom-[1.6cqw] text-[1.9cqw] text-ink/45",
+        "label absolute bottom-[1.6cqw] text-[length:max(8px,1.9cqw)] text-ink/45",
         n % 2 === 1 ? "start-[4.5cqw]" : "end-[4.5cqw]",
       )}
     >
@@ -169,12 +169,12 @@ export function CoverPage({ text }: { text: BookText }) {
           <span aria-hidden="true" className="my-[7cqw] block h-px w-[18cqw] bg-giza/50" />
 
           <p className="font-display text-[10cqw] leading-[0.95]">{text.coverTitle}</p>
-          <p className="mt-[3cqw] text-[2.9cqw] text-giza">{text.coverSub}</p>
+          <p className="mt-[3cqw] text-[length:max(10.5px,2.9cqw)] text-giza">{text.coverSub}</p>
         </div>
 
         <div className="flex items-end justify-between gap-[3cqw] border-t border-navy-edge px-[4cqw] py-[3cqw]">
-          <p className="label text-[2cqw] text-giza">{text.volume}</p>
-          <p className="label text-end text-[2cqw] text-giza/80">{text.date}</p>
+          <p className="label text-[length:max(8.5px,2cqw)] text-giza">{text.volume}</p>
+          <p className="label text-end text-[length:max(8.5px,2cqw)] text-giza/80">{text.date}</p>
         </div>
       </SheetFrame>
 
@@ -197,23 +197,23 @@ export function ColophonPage({ text, n }: { text: BookText; n: number }) {
     <Page>
       <SheetFrame>
         <div className="flex flex-1 flex-col px-[6cqw] py-[7cqw]">
-          <p className="label text-[2cqw] text-survey-deep">{text.volume}</p>
+          <p className="label text-[length:max(8.5px,2cqw)] text-survey-deep">{text.volume}</p>
           <h2 className="mt-[2.5cqw] font-display text-[7cqw] leading-[1.02]">
             {text.colophonTitle}
           </h2>
-          <p className="mt-[4cqw] text-[3cqw] leading-[1.55] text-ink/70">{text.colophonBody}</p>
+          <p className="mt-[4cqw] text-[length:max(9.5px,3cqw)] leading-[1.55] text-ink/70">{text.colophonBody}</p>
 
           {/* The title block, as a legend: the same device every sheet uses. */}
           <dl className="mt-[5cqw] border-s border-t border-sheet-edge">
             {rows.map(([label, sample, gloss]) => (
               <div key={label} className="grid grid-cols-[30%_1fr] border-b border-e border-sheet-edge">
                 <div className="border-e border-sheet-edge px-[2.4cqw] py-[2cqw]">
-                  <dt className="label text-[1.8cqw] text-ink/50">{label}</dt>
-                  <dd className="mt-[0.8cqw] font-data text-[2.8cqw] tabular-nums" dir="ltr">
+                  <dt className="label text-[length:max(7.5px,1.8cqw)] text-ink/50">{label}</dt>
+                  <dd className="mt-[0.8cqw] font-data text-[length:max(9px,2.8cqw)] tabular-nums" dir="ltr">
                     {sample}
                   </dd>
                 </div>
-                <dd className="px-[2.4cqw] py-[2cqw] text-[2.5cqw] leading-[1.45] text-ink/70">
+                <dd className="px-[2.4cqw] py-[2cqw] text-[length:max(8px,2.5cqw)] leading-[1.45] text-ink/70">
                   {gloss}
                 </dd>
               </div>
@@ -247,8 +247,8 @@ export function PlatePage({ text, n }: { text: BookText; n: number }) {
           />
         </div>
         <div className="flex items-baseline gap-[3cqw] border-t border-sheet-edge px-[3.5cqw] py-[2.6cqw]">
-          <p className="label shrink-0 text-[1.9cqw] text-survey-deep">{text.plate.label}</p>
-          <p className="text-[2.35cqw] leading-[1.45] text-ink/70">{text.plate.caption}</p>
+          <p className="label shrink-0 text-[length:max(8px,1.9cqw)] text-survey-deep">{text.plate.label}</p>
+          <p className="text-[length:max(9.5px,2.35cqw)] leading-[1.45] text-ink/70">{text.plate.caption}</p>
         </div>
       </SheetFrame>
       <Folio n={n} label={text.sheet} />
@@ -284,15 +284,15 @@ export function ContentsPage({
                 className="grid grid-cols-[1fr_auto] items-baseline gap-[2cqw] border-b border-sheet-edge py-[1.55cqw]"
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-[2.55cqw] font-medium">{unit.title}</span>
-                  <span className="label block text-[1.8cqw] text-ink/50">
+                  <span className="block truncate text-[length:max(10px,2.55cqw)] font-medium">{unit.title}</span>
+                  <span className="label block text-[length:max(7.5px,1.8cqw)] text-ink/50">
                     <span className="font-data" dir="ltr">
                       {unit.refCode}
                     </span>{" "}
                     · {unit.areaName}
                   </span>
                 </span>
-                <span className="font-data text-[2.3cqw] text-survey-deep tabular-nums" dir="ltr">
+                <span className="font-data text-[length:max(9px,2.3cqw)] text-survey-deep tabular-nums" dir="ltr">
                   {String(unit.photoNo).padStart(3, "0")}
                 </span>
               </li>
@@ -325,9 +325,9 @@ export function UnitPhotoPage({ unit, text }: { unit: BookUnit; text: BookText }
           )}
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-[2cqw] bg-gradient-to-t from-navy/85 to-transparent px-[3.5cqw] pb-[3cqw] pt-[12cqw] text-sheet">
             {unit.photo?.room && (
-              <span className="label text-[1.9cqw] text-giza">{unit.photo.room}</span>
+              <span className="label text-[length:max(8px,1.9cqw)] text-giza">{unit.photo.room}</span>
             )}
-            <span className="font-data text-[2.1cqw] tracking-[0.12em]" dir="ltr">
+            <span className="font-data text-[length:max(8.5px,2.1cqw)] tracking-[0.12em]" dir="ltr">
               {unit.refCode}
             </span>
           </div>
@@ -345,12 +345,12 @@ export function UnitSheetPage({ unit, text }: { unit: BookUnit; text: BookText }
       <SheetFrame>
         <div className="flex flex-1 flex-col px-[5cqw] pt-[5cqw]">
           <div className="flex items-baseline justify-between gap-[2cqw]">
-            <p className="label text-[1.85cqw] text-ink/55">
+            <p className="label text-[length:max(7.5px,1.85cqw)] text-ink/55">
               {unit.areaName} · {unit.tenure}
             </p>
             <p
               className={cn(
-                "label text-[1.85cqw]",
+                "label text-[length:max(7.5px,1.85cqw)]",
                 unit.isReserved ? "text-reserved" : "text-available",
               )}
             >
@@ -365,13 +365,13 @@ export function UnitSheetPage({ unit, text }: { unit: BookUnit; text: BookText }
             {unit.plan && <PlanPlate plan={unit.plan} className="max-h-[42cqw]" withLabels />}
           </div>
 
-          <p className="mt-[2.5cqw] text-[2.35cqw] text-ink/65">
+          <p className="mt-[2.5cqw] text-[length:max(9.5px,2.35cqw)] text-ink/65">
             {unit.bedsBaths}
             {unit.finishing ? ` · ${unit.finishing}` : ""}
           </p>
 
           {unit.highlight && (
-            <p className="mt-[1cqw] border-s-2 border-survey-deep ps-[2cqw] text-[2.35cqw] leading-[1.4]">
+            <p className="mt-[1cqw] border-s-2 border-survey-deep ps-[2cqw] text-[length:max(9.5px,2.35cqw)] leading-[1.4]">
               {unit.highlight}
             </p>
           )}
@@ -383,11 +383,11 @@ export function UnitSheetPage({ unit, text }: { unit: BookUnit; text: BookText }
             <p className="font-data text-[3.9cqw] leading-none tabular-nums">
               <span dir="ltr">{unit.price}</span>
               {unit.period && (
-                <span className="ms-[1.2cqw] font-body text-[2cqw] text-ink/50">{unit.period}</span>
+                <span className="ms-[1.2cqw] font-body text-[length:max(8.5px,2cqw)] text-ink/50">{unit.period}</span>
               )}
             </p>
             {unit.perMeter && (
-              <p className="font-data text-[1.9cqw] text-ink/50 tabular-nums" dir="ltr">
+              <p className="font-data text-[length:max(8px,1.9cqw)] text-ink/50 tabular-nums" dir="ltr">
                 {unit.perMeter} /m²
               </p>
             )}
@@ -409,8 +409,8 @@ export function UnitSheetPage({ unit, text }: { unit: BookUnit; text: BookText }
               key={label}
               className={cn("px-[2cqw] py-[1.8cqw]", i < 3 && "border-e border-sheet-edge")}
             >
-              <dt className="label text-[1.55cqw] text-ink/45">{label}</dt>
-              <dd className="mt-[0.6cqw] truncate font-data text-[2.15cqw] tabular-nums" dir="ltr">
+              <dt className="label text-[length:max(7px,1.55cqw)] text-ink/45">{label}</dt>
+              <dd className="mt-[0.6cqw] truncate font-data text-[length:max(8.5px,2.15cqw)] tabular-nums" dir="ltr">
                 {value}
               </dd>
             </div>
@@ -433,9 +433,9 @@ export function AreasPage({ text, n }: { text: BookText; n: number }) {
               <li key={area.name} className="border-b border-sheet-edge py-[2.2cqw]">
                 <div className="flex items-baseline justify-between gap-[2cqw]">
                   <span className="font-display text-[3.6cqw]">{area.name}</span>
-                  <span className="label text-[1.8cqw] text-survey-deep">{area.count}</span>
+                  <span className="label text-[length:max(7.5px,1.8cqw)] text-survey-deep">{area.count}</span>
                 </div>
-                <p className="mt-[0.8cqw] text-[2.3cqw] leading-[1.45] text-ink/60">
+                <p className="mt-[0.8cqw] text-[length:max(8.5px,2.3cqw)] leading-[1.45] text-ink/60">
                   {area.character}
                 </p>
               </li>
@@ -454,14 +454,14 @@ export function EnquirePage({ text, n }: { text: BookText; n: number }) {
       <SheetFrame>
         <div className="flex flex-1 flex-col justify-center px-[7cqw]">
           <h2 className="font-display text-[7.5cqw] leading-[1.02]">{text.enquireTitle}</h2>
-          <p className="mt-[4cqw] text-[3.1cqw] leading-[1.55] text-ink/70">{text.enquireBody}</p>
+          <p className="mt-[4cqw] text-[length:max(11px,3.1cqw)] leading-[1.55] text-ink/70">{text.enquireBody}</p>
 
           <div className="mt-[7cqw] border-t border-sheet-edge pt-[4cqw]">
-            <p className="label text-[1.9cqw] text-ink/50">{text.whatsapp}</p>
+            <p className="label text-[length:max(8px,1.9cqw)] text-ink/50">{text.whatsapp}</p>
             <p className="mt-[1cqw] font-data text-[5cqw] tabular-nums text-survey-deep" dir="ltr">
               {text.phone}
             </p>
-            <p className="mt-[3.5cqw] text-[2.5cqw] text-ink/60">{text.address}</p>
+            <p className="mt-[3.5cqw] text-[length:max(9.5px,2.5cqw)] text-ink/60">{text.address}</p>
           </div>
         </div>
       </SheetFrame>
@@ -479,9 +479,9 @@ export function BackCoverPage({ text }: { text: BookText }) {
           <p className="mt-[5cqw] font-data text-[4.2cqw] tabular-nums" dir="ltr">
             {text.phone}
           </p>
-          <p className="mt-[2cqw] text-[2.6cqw] text-giza">{text.address}</p>
+          <p className="mt-[2cqw] text-[length:max(9.5px,2.6cqw)] text-giza">{text.address}</p>
         </div>
-        <p className="border-t border-navy-edge px-[5cqw] py-[3cqw] text-center text-[1.95cqw] leading-[1.5] text-giza/70">
+        <p className="border-t border-navy-edge px-[5cqw] py-[3cqw] text-center text-[length:max(8px,1.95cqw)] leading-[1.5] text-giza/70">
           {text.backNote}
         </p>
       </SheetFrame>

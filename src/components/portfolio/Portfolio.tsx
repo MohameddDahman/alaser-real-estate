@@ -35,8 +35,8 @@ import { cn } from "@/lib/utils";
  *
  * Sizes are CSS (see .pbook-frame in globals.css), so the server renders the
  * book at its final size and nothing moves when the engine arrives. On a
- * narrow screen the book stays a book - you look at one page of it at a time
- * and the view slides across as you read.
+ * phone the book is read a page at a time, as the reference does it: each
+ * page curls away past the spine and the next lies beneath.
  */
 
 export type SpreadMeta = {
@@ -49,18 +49,19 @@ export type SpreadMeta = {
 };
 
 type Mode = "spread" | "single";
-/** In single-page view: which page of the spread, in reading order. */
-type Focus = "first" | "second";
 
 export function Portfolio({
   units,
   text,
   spreads,
+  pageLabels,
   rtl,
 }: {
   units: BookUnit[];
   text: BookText;
   spreads: SpreadMeta[];
+  /** One per page, for reading a page at a time. */
+  pageLabels: string[];
   rtl: boolean;
 }) {
   const t = useTranslations("portfolio");
@@ -68,6 +69,7 @@ export function Portfolio({
   const dir: 1 | -1 = rtl ? -1 : 1;
   const pages = bookPages(units.length);
   const leafCount = spreads.length - 1;
+  const lastPage = pages.length - 1;
 
   const stageRef = useRef<HTMLElement>(null);
   const colRef = useRef<HTMLDivElement>(null);
@@ -78,13 +80,25 @@ export function Portfolio({
   const engineRef = useRef<BookEngine | null>(null);
 
   const [ready, setReady] = useState(false);
-  const [spread, setSpread] = useState(0);
-  const [mode, setMode] = useState<Mode>("spread");
-  const [focus, setFocus] = useState<Focus>("first");
+  /** Unknown until measured; the server renders the closed book either way. */
+  const [mode, setMode] = useState<Mode | null>(null);
+  /** The engine's reading position: spreads open, or pages turned. */
+  const [pos, setPos] = useState(0);
   const [inView, setInView] = useState(false);
   const interacted = useRef(false);
   const peeked = useRef(false);
-  const lastSpread = useRef(0);
+  /** Where the reader is, kept across a switch between the two ways of reading. */
+  const place = useRef<{ mode: Mode | null; pos: number }>({ mode: null, pos: 0 });
+
+  // Spread s opens on its first page, p; page p belongs to spread s.
+  const pageOf = useCallback(
+    (s: number) => (s <= 0 ? 0 : s >= leafCount ? lastPage : s * 2 - 1),
+    [leafCount, lastPage],
+  );
+  const spreadOf = useCallback(
+    (p: number) => (p <= 0 ? 0 : p >= lastPage ? leafCount : Math.ceil(p / 2)),
+    [leafCount, lastPage],
+  );
 
   /* The entrance: lying back on the desk, rising to face the reader. ---- */
   const { scrollYProgress } = useScroll({ target: colRef, offset: ["start end", "start 0.3"] });
@@ -115,15 +129,31 @@ export function Portfolio({
   }, [measure]);
 
   /* The engine ------------------------------------------------------------ */
+  // Built for whichever way the book is being read, and rebuilt - at the
+  // same place in the book - when that changes.
   useEffect(() => {
     const root = bookRef.current;
     const source = sourceRef.current;
-    if (!root || !source) return;
+    if (!root || !source || !mode) return;
     const nodes = Array.from(source.querySelectorAll<HTMLElement>(":scope > [data-book-page]"));
+    const was = place.current;
+    const start =
+      was.mode === null || was.mode === mode
+        ? was.pos
+        : mode === "single"
+          ? pageOf(was.pos)
+          : spreadOf(was.pos);
+    place.current = { mode, pos: start };
+    setPos(start);
     const engine = new BookEngine(root, nodes, {
       dir,
       reduced: reduce,
-      onChange: (s) => setSpread(s.spread),
+      single: mode === "single",
+      start,
+      onChange: (s) => {
+        place.current = { mode, pos: s.position };
+        setPos(s.position);
+      },
     });
     engineRef.current = engine;
     if (process.env.NODE_ENV === "development") {
@@ -135,44 +165,36 @@ export function Portfolio({
       engine.destroy();
       engineRef.current = null;
       setReady(false);
-      setSpread(0);
     };
-  }, [dir, reduce, units.length, measure]);
-
-  // Reading forward lands you on the first page of the new spread; reading
-  // back, on the second. Only matters when one page shows at a time.
-  useEffect(() => {
-    if (spread > lastSpread.current) setFocus("first");
-    else if (spread < lastSpread.current) setFocus("second");
-    lastSpread.current = spread;
-  }, [spread]);
+  }, [dir, reduce, mode, units.length, measure, pageOf, spreadOf]);
 
   /* Controls -------------------------------------------------------------- */
-  const atCover = spread === 0;
-  const atBack = spread === leafCount;
   const single = mode === "single";
+  const spread = single ? spreadOf(pos) : pos;
+  const atCover = pos === 0;
+  const atBack = single ? pos >= lastPage : pos >= leafCount;
 
   const next = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
     interacted.current = true;
-    if (single && !atCover && !atBack && focus === "first") return setFocus("second");
     if (atBack) return engine.goTo(0);
     engine.next();
-  }, [single, atCover, atBack, focus]);
+  }, [atBack]);
 
   const prev = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
     interacted.current = true;
-    if (single && !atCover && !atBack && focus === "second") return setFocus("first");
-    engine.prev();
-  }, [single, atCover, atBack, focus]);
-
-  const goTo = useCallback((s: number) => {
-    interacted.current = true;
-    engineRef.current?.goTo(s);
+    engineRef.current?.prev();
   }, []);
+
+  /** Go to a spread - its first page, when reading a page at a time. */
+  const goTo = useCallback(
+    (s: number) => {
+      interacted.current = true;
+      engineRef.current?.goTo(single ? pageOf(s) : s);
+    },
+    [single, pageOf],
+  );
 
   // Arrow keys turn the book - only while it is on screen and nothing
   // editable has focus. In Arabic, left is forward.
@@ -240,24 +262,17 @@ export function Portfolio({
 
   /* Layout state ---------------------------------------------------------- */
   // Where the book sits, in page widths. Closed, the cover is centred; open,
-  // the spread is; one page at a time, whichever page you are reading.
+  // the spread is. A page at a time, the page is - always, and the view
+  // never moves: pages leave past the spine and come back from it.
   const unturnedK = -dir * 0.5;
   const turnedK = dir * 0.5;
-  const slide = atCover
-    ? unturnedK
-    : atBack
-      ? turnedK
-      : single
-        ? focus === "first"
-          ? turnedK
-          : unturnedK
-        : 0;
+  const slide = single || atCover ? unturnedK : atBack ? turnedK : 0;
 
-  // The page block's visible edge on each side, from how much is there.
-  const edge = (leaves: number) =>
-    leaves <= 0 ? 0 : Math.max(1, Math.min(6, Math.ceil((leaves / leafCount) * 6)));
-  const turnedEdge = edge(spread);
-  const unturnedEdge = edge(leafCount - spread);
+  // The page block's visible edge on each side, from how much is there. A
+  // page at a time, only the stack still to read is on the screen.
+  const edge = (share: number) => (share <= 0 ? 0 : Math.max(1, Math.min(6, Math.ceil(share * 6))));
+  const turnedEdge = single ? 0 : edge(spread / leafCount);
+  const unturnedEdge = single ? edge((lastPage - pos) / lastPage) : edge((leafCount - spread) / leafCount);
   const leftEdge = dir === 1 ? turnedEdge : unturnedEdge;
   const rightEdge = dir === 1 ? unturnedEdge : turnedEdge;
   const stack = (px: number, sign: 1 | -1) =>
@@ -271,7 +286,8 @@ export function Portfolio({
   const nextLabel = atCover ? t("openCover") : atBack ? t("toCover") : t("nextLabel");
   const nextShort = atCover ? t("openShort") : atBack ? t("toCover") : t("nextLabel");
   const canPrev = ready && !atCover;
-  const progress = leafCount ? spread / leafCount : 0;
+  const progress = single ? pos / lastPage : leafCount ? spread / leafCount : 0;
+  const label = single ? pageLabels[pos] : spreads[spread]?.label;
 
   return (
     <section
@@ -363,7 +379,7 @@ export function Portfolio({
             </button>
 
             <p className="label truncate text-center text-ink/60" aria-live="polite">
-              {spreads[spread]?.label}
+              {label}
             </p>
 
             <button

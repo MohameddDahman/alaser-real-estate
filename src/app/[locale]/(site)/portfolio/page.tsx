@@ -196,6 +196,14 @@ export default async function PortfolioPage({ params }: Props) {
     });
   }
 
+  // And one per page, for reading a page at a time on a phone.
+  const pageLabels = pages.map((page, p) => {
+    if (page.kind === "cover") return t("cover");
+    if (page.kind === "back") return t("backCover");
+    const title = page.kind === "photo" || page.kind === "sheet" ? units[page.unit].title : titleOf(page);
+    return t("pageLabel", { n: folio(p), title });
+  });
+
   const requestLink = waHref(t("requestTemplate"), locale);
   const external = requestLink.startsWith("http");
 
@@ -224,7 +232,13 @@ export default async function PortfolioPage({ params }: Props) {
 
       {/* The book, on its desk ------------------------------------------ */}
       <div className="mt-12">
-        <Portfolio units={units} text={text} spreads={spreads} rtl={locale === "ar"} />
+        <Portfolio
+          units={units}
+          text={text}
+          spreads={spreads}
+          pageLabels={pageLabels}
+          rtl={locale === "ar"}
+        />
       </div>
 
       {/* The same volume as a list: the accessible path through it, and a

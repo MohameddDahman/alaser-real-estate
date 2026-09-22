@@ -139,8 +139,12 @@ is nothing to maintain.
   arithmetic, never with a negative CSS scale, which flips which 3D faces the
   browser thinks are facing it.
 - Sizes are CSS (`.pbook-frame` in `globals.css`), so the server renders the
-  book at its final size. On a phone you read one page at a time and the view
-  slides across the open book.
+  book at its final size.
+- On a phone the book is a stack of single pages, as in the reference: swipe
+  toward the spine (or tap the outer side) and the page curls away to reveal
+  the next; swipe the other way (or tap near the spine) and the last one comes
+  back. The view never slides. Page text has minimum sizes so it stays legible
+  at phone width; every page is checked clean for overflow from 272px up.
 - The book is `aria-hidden`; the same volume follows it as a real list of links.
 - In development, `window.__book.timeScale = 0.05` plays turns in slow motion.
 

@@ -462,6 +462,7 @@
     "cover": "Cover",
     "backCover": "Back cover",
     "spreadLabel": "Sheets {from}–{to} · {title}",
+    "pageLabel": "Sheet {n} · {title}",
     "hintDesktop": "Drag a page, or use ← → on the keyboard",
     "hintTouch": "Swipe a page to turn it",
     "goTo": "Go to {label}",

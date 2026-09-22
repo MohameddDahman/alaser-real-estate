@@ -462,6 +462,7 @@
     "cover": "الغلاف",
     "backCover": "الغلاف الخلفي",
     "spreadLabel": "الصفحات {from}–{to} · {title}",
+    "pageLabel": "صفحة {n} · {title}",
     "hintDesktop": "اسحب الصفحة، أو استخدم ← → من لوحة المفاتيح",
     "hintTouch": "اسحب الصفحة لتقلبها",
     "goTo": "انتقل إلى {label}",
