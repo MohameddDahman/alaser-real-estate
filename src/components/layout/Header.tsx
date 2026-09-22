@@ -16,6 +16,7 @@ import type { Locale } from "@/i18n/routing";
 
 const NAV = [
   { href: "/properties", key: "properties" },
+  { href: "/portfolio", key: "portfolio" },
   { href: "/areas", key: "areas" },
   { href: "/services", key: "services" },
   { href: "/about", key: "about" },

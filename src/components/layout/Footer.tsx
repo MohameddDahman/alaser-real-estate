@@ -47,7 +47,7 @@ export async function Footer() {
           <div>
             <h2 className="label text-sheet">{t("company")}</h2>
             <ul className="mt-4 space-y-2.5">
-              {(["properties", "areas", "services", "about", "contact"] as const).map((key) => (
+              {(["properties", "portfolio", "areas", "services", "about", "contact"] as const).map((key) => (
                 <li key={key}>
                   <Link
                     href={key === "properties" ? "/properties" : `/${key}`}

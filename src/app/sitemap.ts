@@ -4,7 +4,7 @@ import { routing } from "@/i18n/routing";
 import { getAllPropertySlugs } from "@/lib/data";
 import { SITE_URL } from "@/lib/site";
 
-const STATIC_PATHS = ["", "/properties", "/areas", "/services", "/about", "/contact"];
+const STATIC_PATHS = ["", "/properties", "/portfolio", "/areas", "/services", "/about", "/contact"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const slugs = await getAllPropertySlugs();
