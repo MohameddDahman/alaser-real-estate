@@ -62,7 +62,7 @@ src/
     actions/              server actions: inquiry, admin
   components/
     plan/                 THE SIGNATURE — see below
-    property/  home/  layout/  admin/  ui/  brand/
+    property/  home/  portfolio/  layout/  admin/  ui/  brand/
   content/client-facts.ts SINGLE SOURCE OF TRUTH for everything about the business
   lib/
     data/                 the Convex swap points
@@ -111,6 +111,24 @@ Floor plans are stored as **rectangles in centimetres**, not SVG path strings
 `PlanStack` is the only 3D on the site: CSS `perspective` + `rotateX` on
 layered planes. No WebGL, no canvas. An apartment *is* one slab in a stack, and
 "third floor of nine" is the first thing a buyer asks after the price.
+
+### The portfolio (`/portfolio`)
+
+Every available or reserved unit bound as a page-turning book: photograph on
+one page, measured sheet facing it. It builds itself from the listings, so
+there is nothing to maintain.
+
+- `components/portfolio/layout.ts` decides which page goes where. Photographs
+  always land on a left-hand page and the back cover always stands alone; the
+  contents run to a page per eight units, and a plate is added when the page
+  count needs one. Folios are computed, never typed.
+- `page-flip` does the turning. It gets **clones** of React-rendered pages in a
+  root React never touches, so the two never fight over the DOM.
+- Arabic is bound on the right by reversing the page order and opening on the
+  last page. The book is not mirrored with CSS, which would break dragging.
+- Pages are sized in container units (`cqw`), so a sheet scales as one object.
+  On a phone it turns one page at a time.
+- The book is `aria-hidden`; the same volume follows it as a real list of links.
 
 ### Photography — currently PLACEHOLDER
 
