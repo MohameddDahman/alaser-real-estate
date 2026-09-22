@@ -331,6 +331,192 @@
   }
 }
 
+/* The portfolio book ------------------------------------------------------
+   The engine in components/portfolio/engine builds the DOM and moves it;
+   these are the materials. --pw and --ph are one page's width and height. */
+@layer components {
+  /* The desk the book lies on: lit from above, falling off to the edges. */
+  .pbook-desk {
+    background: radial-gradient(120% 85% at 50% 26%, #f3f1eb 0%, var(--color-sheet-2) 55%, var(--color-sheet-edge) 100%);
+  }
+
+  /* Book size, in CSS so the server renders it exactly: as large as fits
+     the width and the height of the screen, a spread where two pages fit,
+     one page at a time where they do not. */
+  .pbook-stage {
+    container-type: inline-size;
+  }
+  .pbook-frame {
+    --cols: 2;
+    --pw: clamp(250px, min(calc((100cqw - 80px) / 2), calc((100svh - 190px) * 0.75)), 560px);
+    --ph: calc(var(--pw) / 0.75);
+  }
+  @container (max-width: 620px) {
+    .pbook-frame {
+      --cols: 1;
+      --pw: clamp(240px, min(calc(100cqw - 32px), calc((100svh - 190px) * 0.75)), 520px);
+    }
+  }
+  .pbook-col {
+    width: calc(var(--pw) * var(--cols));
+    height: var(--ph);
+  }
+  .pbook-controls {
+    width: calc(var(--pw) * var(--cols));
+    max-width: 100%;
+  }
+
+  .pbook {
+    position: relative;
+    width: calc(var(--pw) * 2);
+    height: var(--ph);
+    perspective: 3200px;
+    perspective-origin: 50% 42%;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: grab;
+  }
+  .pbook:active {
+    cursor: grabbing;
+  }
+
+  /* Each slot is its own stacking context, so the shading layered inside a
+     page can never rise above a page turning over it. */
+  .pbook-slot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: var(--pw);
+    height: var(--ph);
+    overflow: hidden;
+  }
+  .pbook-slot > [data-book-page],
+  .pbook-face > [data-book-page] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--pw);
+    height: var(--ph);
+  }
+
+  .pbook-layer,
+  .pbook-leaf {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+  .pbook-layer {
+    z-index: 1;
+  }
+  .pbook-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: var(--ph);
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  /* backface-visibility is not inherited, and a child the browser composites
+     on its own layer (the shade, whose opacity changes every frame) would
+     otherwise show through from behind. So the children get it too. */
+  .pbook-face,
+  .pbook-face > * {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .pbook-face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .pbook-face[data-back] {
+    transform: rotateY(180deg);
+  }
+  /* Darkens a strip as it turns away from the light. */
+  .pbook-shade {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    background: var(--color-ink);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* The shadow a lifted page casts on the one beneath it. */
+  .pbook-shadow {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 100%;
+    z-index: 35;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pbook-shadow[data-edge="right"] {
+    background: linear-gradient(to right, rgb(10 13 24 / 0.9), rgb(10 13 24 / 0.55) 82%, transparent);
+  }
+  .pbook-shadow[data-edge="left"] {
+    background: linear-gradient(to left, rgb(10 13 24 / 0.9), rgb(10 13 24 / 0.55) 82%, transparent);
+  }
+
+  /* The spine. Paper curves down into the binding, so it darkens there and
+     catches a sliver of light just before. `data-side` is the side of the
+     spine the page lies on. */
+  .pbook-gutter {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+  }
+  .pbook-gutter[data-side="right"] {
+    background:
+      linear-gradient(90deg, rgb(10 13 24 / 0.24) 0%, rgb(10 13 24 / 0.09) 2.5%, rgb(255 255 255 / 0.1) 5%, rgb(10 13 24 / 0) 13%),
+      linear-gradient(270deg, rgb(10 13 24 / 0.05) 0%, rgb(10 13 24 / 0) 18%);
+  }
+  .pbook-gutter[data-side="left"] {
+    background:
+      linear-gradient(270deg, rgb(10 13 24 / 0.24) 0%, rgb(10 13 24 / 0.09) 2.5%, rgb(255 255 255 / 0.1) 5%, rgb(10 13 24 / 0) 13%),
+      linear-gradient(90deg, rgb(10 13 24 / 0.05) 0%, rgb(10 13 24 / 0) 18%);
+  }
+  .pbook-gutter[data-hard] {
+    background: none;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.06),
+      inset 0 0 48px rgb(0 0 0 / 0.45);
+  }
+
+  /* Uncoated stock: a faint warm grain, never a flat fill. */
+  .pbook-paper {
+    background-color: var(--color-sheet);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.18 0 0 0 0 0.14 0 0 0 0.075 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  }
+
+  /* Blocked in foil on the cover: a band of light crosses it, slowly. */
+  .pbook-foil {
+    color: transparent;
+    background-image: linear-gradient(105deg, #9f9175 0%, #c9bba0 32%, #f7f1e4 46%, #c9bba0 58%, #847b68 100%);
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: pbook-foil 7s ease-in-out infinite;
+  }
+}
+
+@keyframes pbook-foil {
+  0%,
+  100% {
+    background-position: 100% 0;
+  }
+  50% {
+    background-position: 0 0;
+  }
+}
+
 @layer utilities {
   .animate-marquee {
     animation-name: marquee;

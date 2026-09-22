@@ -451,11 +451,21 @@
     "eyebrow": "The portfolio",
     "title": "Every unit, as a sheet in a bound set.",
     "lead": "Every unit we have listed right now, set as a printed spread — the photograph on one page, the measured sheet on the other. Turn it the way you would the one on our desk in Faisal.",
-    "howTo": "Turn the pages with the arrows, the keyboard, or by dragging a corner.",
-    "counter": "{current} / {total}",
+    "howTo": "Open the cover, then pick up a page and turn it — or use the arrows and the keyboard.",
     "prev": "Previous page",
     "next": "Next page",
+    "prevLabel": "Previous",
+    "nextLabel": "Next",
+    "openCover": "Open the cover",
+    "openShort": "Open",
     "toCover": "Back to the cover",
+    "cover": "Cover",
+    "backCover": "Back cover",
+    "spreadLabel": "Sheets {from}–{to} · {title}",
+    "hintDesktop": "Drag a page, or use ← → on the keyboard",
+    "hintTouch": "Swipe a page to turn it",
+    "goTo": "Go to {label}",
+    "filmstrip": "Every spread in the volume",
     "volume": "Volume I",
     "coverTitle": "Portfolio",
     "coverSub": "Units for sale and new-law rent",
@@ -477,7 +487,6 @@
     "requestCopy": "Send me this portfolio",
     "requestCopyNote": "We send it on WhatsApp, so you can forward it to whoever is deciding with you.",
     "requestTemplate": "Hello — please send me the Alaser portfolio.",
-    "unitsCount": "{count, plural, =1 {# unit} other {# units}} · {pages} pages",
-    "dragHint": "Drag a corner"
+    "unitsCount": "{count, plural, =1 {# unit} other {# units}} · {pages} pages"
   }
 }

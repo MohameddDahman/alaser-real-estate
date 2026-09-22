@@ -56,3 +56,36 @@ export function layoutBook(unitCount: number): BookLayout {
     pageCount: enquirePage + 2,
   };
 }
+
+/** One page of the book, in reading order. Its index is its folio. */
+export type BookPage =
+  | { kind: "cover" }
+  | { kind: "colophon"; n: number }
+  | { kind: "plate"; n: number }
+  | { kind: "contents"; n: number; start: number; end: number; continued: boolean }
+  | { kind: "photo"; n: number; unit: number }
+  | { kind: "sheet"; n: number; unit: number }
+  | { kind: "areas"; n: number }
+  | { kind: "enquire"; n: number }
+  | { kind: "back" };
+
+/**
+ * Every page in order - the single list the book, its thumbnails and its
+ * labels are all drawn from, so they cannot disagree.
+ */
+export function bookPages(unitCount: number): BookPage[] {
+  const layout = layoutBook(unitCount);
+  const pages: BookPage[] = [{ kind: "cover" }, { kind: "colophon", n: 1 }];
+  if (layout.plate !== null) pages.push({ kind: "plate", n: layout.plate });
+  layout.contents.forEach((c, i) =>
+    pages.push({ kind: "contents", n: c.n, start: c.start, end: c.end, continued: i > 0 }),
+  );
+  for (let u = 0; u < unitCount; u++) {
+    pages.push({ kind: "photo", n: layout.firstUnitPage + u * 2, unit: u });
+    pages.push({ kind: "sheet", n: layout.firstUnitPage + u * 2 + 1, unit: u });
+  }
+  pages.push({ kind: "areas", n: layout.areasPage });
+  pages.push({ kind: "enquire", n: layout.enquirePage });
+  pages.push({ kind: "back" });
+  return pages;
+}

@@ -4,9 +4,9 @@ import { MessageCircle } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { Portfolio } from "@/components/portfolio/Portfolio";
+import { Portfolio, type SpreadMeta } from "@/components/portfolio/Portfolio";
 import type { BookText, BookUnit } from "@/components/portfolio/BookPages";
-import { layoutBook } from "@/components/portfolio/layout";
+import { bookPages, layoutBook, type BookPage } from "@/components/portfolio/layout";
 import { Reveal } from "@/components/ui/Reveal";
 import { RevealText } from "@/components/motion/primitives";
 import { getAreaCounts, getProperties, planForProperty } from "@/lib/data";
@@ -147,6 +147,55 @@ export default async function PortfolioPage({ params }: Props) {
   };
 
   const pageCount = layout.pageCount;
+
+  // One entry per spread - closed front, every opening, closed back - for
+  // the label under the book and the strip of thumbnails.
+  const pages = bookPages(units.length);
+  const folio = (n: number) => String(n).padStart(3, "0");
+  const titleOf = (page: BookPage): string => {
+    switch (page.kind) {
+      case "photo":
+      case "sheet":
+        return units[page.unit].title;
+      case "colophon":
+      case "plate":
+        return text.colophonTitle;
+      case "contents":
+        return text.contentsTitle;
+      case "areas":
+        return text.areasTitle;
+      case "enquire":
+        return text.enquireTitle;
+      default:
+        return "";
+    }
+  };
+  const spreads: SpreadMeta[] = [];
+  const leaves = pages.length / 2;
+  for (let s = 0; s <= leaves; s++) {
+    if (s === 0 || s === leaves) {
+      const label = s === 0 ? t("cover") : t("backCover");
+      spreads.push({ label, short: label, thumb: null, tone: "cover" });
+      continue;
+    }
+    const first = pages[s * 2 - 1];
+    const second = pages[s * 2];
+    const unitPage = [first, second].find(
+      (p): p is Extract<BookPage, { unit: number }> => p.kind === "photo" || p.kind === "sheet",
+    );
+    const thumb = unitPage ? (units[unitPage.unit].photo?.src ?? null) : null;
+    spreads.push({
+      label: t("spreadLabel", {
+        from: folio(s * 2 - 1),
+        to: folio(s * 2),
+        title: unitPage ? units[unitPage.unit].title : titleOf(first),
+      }),
+      short: folio(s * 2 - 1),
+      thumb,
+      tone: thumb ? "photo" : "paper",
+    });
+  }
+
   const requestLink = waHref(t("requestTemplate"), locale);
   const external = requestLink.startsWith("http");
 
@@ -173,9 +222,9 @@ export default async function PortfolioPage({ params }: Props) {
         <p className="label mt-10 text-giza-dim">{t("howTo")}</p>
       </div>
 
-      {/* The book ------------------------------------------------------ */}
-      <div className="mt-10 px-4 sm:px-6 lg:px-10">
-        <Portfolio units={units} text={text} rtl={locale === "ar"} />
+      {/* The book, on its desk ------------------------------------------ */}
+      <div className="mt-12">
+        <Portfolio units={units} text={text} spreads={spreads} rtl={locale === "ar"} />
       </div>
 
       {/* The same volume as a list: the accessible path through it, and a

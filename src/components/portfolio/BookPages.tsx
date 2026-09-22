@@ -86,7 +86,7 @@ function Page({
       <div
         className={cn(
           "@container relative h-full w-full overflow-hidden",
-          dark ? "bg-navy text-sheet" : "bg-sheet text-ink",
+          dark ? "bg-navy text-sheet" : "pbook-paper text-ink",
           className,
         )}
       >
@@ -146,10 +146,20 @@ export function CoverPage({ text }: { text: BookText }) {
           backgroundSize: "9cqw 9cqw",
         }}
       />
+      {/* Light falling on the board from above. */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_0%,rgba(201,187,160,0.16),transparent_70%)]"
+      />
       <SheetFrame dark>
         <div className="flex flex-1 flex-col items-center justify-center px-[6cqw] text-center">
           <Mark className="h-[11cqw] w-auto text-giza" />
-          <p className="mt-[4cqw] font-display text-[4.2cqw] leading-none tracking-[0.42em] [font-variation-settings:'wdth'_100,'wght'_500]">
+          {/* Tracking leaves a space after the last letter; the matching
+              indent keeps the word optically centred. */}
+          <p
+            dir="ltr"
+            className="pbook-foil mt-[4cqw] ps-[0.42em] font-display text-[4.2cqw] leading-none tracking-[0.42em] [font-variation-settings:'wdth'_100,'wght'_500]"
+          >
             {text.brand}
           </p>
           <p lang="ar" dir="rtl" className="mt-[2.2cqw] font-body text-[3.4cqw] text-giza">
