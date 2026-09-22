@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
       // Placeholder photography only - see src/content/photos.ts. Removed
       // once the client's own shoots are in Convex storage.
       { protocol: "https", hostname: "images.unsplash.com" },
+      // Uploads from the dashboard live here until Convex storage exists.
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
   experimental: {

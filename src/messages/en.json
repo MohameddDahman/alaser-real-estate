@@ -432,7 +432,15 @@
     "savePhotos": "Save photographs",
     "photosSaved": "Photographs saved",
     "photosSaveFailed": "That did not save. Try again.",
-    "uploadLater": "Uploading files straight from your computer arrives with Convex storage. Until then, paste the address of a photograph that is already online.",
-    "unsavedPhotos": "You have unsaved changes to the photographs."
+    "unsavedPhotos": "You have unsaved changes to the photographs.",
+    "dropHere": "Drag photographs here",
+    "chooseFiles": "Choose files",
+    "orChoose": "or",
+    "uploadNote": "Photographs are resized to 2560px in your browser before they upload, so a photo straight off a phone sends in seconds instead of minutes.",
+    "uploading": "Uploading",
+    "uploadFailed": "{name} did not upload. Try again.",
+    "notAnImage": "{name} is not an image.",
+    "setCover": "Make this the cover",
+    "uploadBusy": "Uploading {done} of {total}"
   }
 }

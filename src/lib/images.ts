@@ -12,6 +12,7 @@
  */
 const OPTIMISED_HOSTS = [
   "images.unsplash.com",
+  ".public.blob.vercel-storage.com",
   ".convex.cloud",
   ".convex.site",
 ];

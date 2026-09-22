@@ -112,13 +112,18 @@ Floor plans are stored as **rectangles in centimetres**, not SVG path strings
 layered planes. No WebGL, no canvas. An apartment *is* one slab in a stack, and
 "third floor of nine" is the first thing a buyer asks after the price.
 
-### Photography
+### Photography — currently PLACEHOLDER
 
-The client has **no photography yet**, so nothing on this site is stock —
-interchangeable stock is the loudest possible signal that a site is templated.
-An unphotographed unit renders **its own plan** in survey ink, in the exact
-aspect box a photograph will occupy. When shoots land they drop into
-`gallery` and nothing reflows. Shot list: [`docs/shot-list.md`](docs/shot-list.md).
+The client has no shoots yet, so every unit is showing licence-free stand-in
+photographs from `src/content/photos.ts`. **`PHOTOS_ARE_PLACEHOLDERS` is
+`true`**, which drives an amber badge on every unit page and a nag on the
+dashboard. Flip it to `false` once real photography is in use — that also
+makes an empty gallery mean "no photographs" again rather than handing the
+stand-ins back, at which point a unit falls back to its own plan.
+
+Stock on a listing for a specific flat at a specific price implies it *is*
+that flat, so this has to go before launch. Replacing it is mechanical: upload
+in admin, or swap `src`. Shot list: [`docs/shot-list.md`](docs/shot-list.md).
 
 ---
 
@@ -132,6 +137,7 @@ are the entire swap:
 | `src/lib/data/index.ts` | `fetchQuery` / `preloadQuery` calls. Return types already match. |
 | `src/lib/data/store.ts` | mutations; **delete the file** |
 | `src/lib/data/inquiries.ts` | one mutation + one query; **delete the file** |
+| `src/app/api/admin/upload/route.ts` | Convex upload URLs in place of Blob tokens |
 
 ```bash
 npx convex dev          # generates convex/_generated from the committed schema
@@ -168,10 +174,10 @@ Everything outstanding is tracked in one place: `OPEN_QUESTIONS` in
 
 **Blocking:**
 
-- [ ] Real WhatsApp number → `contact` in `client-facts.ts`, set `verified: true`.
-      Until then every WhatsApp CTA falls back to `/contact` rather than
-      deep-linking a number nobody answers.
-- [ ] Photography (see the shot list).
+- [x] ~~WhatsApp number~~ — `01095115184`, confirmed, deep-linking live.
+- [x] ~~Facebook page~~ — confirmed, stored as the canonical profile URL.
+- [ ] **Photography.** Every unit is on placeholders. Upload the real shoots in
+      admin, then set `PHOTOS_ARE_PLACEHOLDERS = false`.
 - [ ] Vector logo. `components/brand/Mark.tsx` is redrawn from a screenshot.
 - [ ] Confirm whether they list rentals: their description says
       *"للبيع والشراء"* but the cover banner says *"القانون الجديد"*.
@@ -203,8 +209,6 @@ Numbers and faces render **only when `verified` is true.** An unverified
 - **Shared-element transition** (card → unit page). Waiting on React's
   `<ViewTransition>` stabilising; not worth an experimental flag in a client
   deliverable.
-- **Gallery lightbox** is not built yet because there are no photographs. It
-  goes in with the first shoot.
 - **Arabic OG images.** `opengraph-image.tsx` is Latin-only: Satori needs an
   embedded font file for Arabic glyphs, and a card that renders boxes on half
   the shares is worse than one showing numbers both audiences read the same.
@@ -220,3 +224,34 @@ npm run start   # serve the build
 npm run lint    # eslint
 npx tsc --noEmit
 ```
+
+---
+
+## Photographs
+
+Uploads go **straight from the browser to Vercel Blob**, using a short-lived
+token minted by `/api/admin/upload` (which checks the admin session before
+minting). The bytes never pass through a server action, so ten photographs
+upload in parallel with real progress and a 4MB file is not a problem.
+
+Before anything is sent, `src/lib/resize-image.ts` does the work the brief
+asks for, in the browser:
+
+- resizes to a 2560px long edge and re-encodes as WebP
+- records the real pixel dimensions, so nothing guesses an aspect ratio
+- generates a `blurDataURL` from the photograph itself, not a flat chip
+- respects EXIF orientation, which `<img>` decoding does not
+
+The client will be uploading 6MB photos from a phone on Egyptian mobile data;
+this sends roughly a tenth of that.
+
+**The cover is the first frame.** "Set as cover" lifts a photo to the top
+rather than setting a separate flag — one concept to explain instead of two.
+
+**Alt text is never empty.** Leave it blank and the server writes it from the
+room and the unit in both languages. Change the room and an auto-written alt
+is rewritten to match; one the client typed themselves is left alone.
+
+Images from hosts that are not in `next.config` render unoptimised rather than
+as a broken box — see `src/lib/images.ts`. Opening the optimiser to `**` would
+turn it into an image proxy anyone could bill us for.

@@ -37,7 +37,15 @@ export function missingBilingualFields(property: Property): string[] {
  * Anything with an unusable src is dropped rather than saved broken.
  */
 export function normaliseGallery(
-  drafts: Array<{ src?: string; altEn?: string; altAr?: string; room?: string }>,
+  drafts: Array<{
+    src?: string;
+    altEn?: string;
+    altAr?: string;
+    room?: string;
+    width?: number;
+    height?: number;
+    blurDataURL?: string;
+  }>,
   ctx: { titleEn: string; titleAr: string; refCode: string },
 ): GalleryImage[] {
   return drafts
@@ -63,11 +71,20 @@ export function normaliseGallery(
           ar: (draft.altAr ?? "").trim() || fallbackAr,
         },
         room,
-        // Pasted URLs carry no intrinsic size. Everything renders with `fill`
-        // inside an aspect box, so these only need to be a sane ratio.
-        width: 1600,
-        height: 1067,
-        blurDataURL: BLUR,
+        // An upload carries its real pixel size and a blur generated from the
+        // photograph itself. A pasted URL carries neither, so it falls back to
+        // a sane ratio and the shared navy chip - everything renders with
+        // `fill` inside an aspect box, so the numbers only need to be sane.
+        width: typeof draft.width === "number" && draft.width > 0
+          ? Math.round(draft.width)
+          : 1600,
+        height: typeof draft.height === "number" && draft.height > 0
+          ? Math.round(draft.height)
+          : 1067,
+        blurDataURL:
+          typeof draft.blurDataURL === "string" && draft.blurDataURL.startsWith("data:image/")
+            ? draft.blurDataURL
+            : BLUR,
         order,
       } satisfies GalleryImage;
     });
