@@ -31,33 +31,28 @@ export type Material = {
   drag: number;
 };
 
-export const PAPER: Material = {
-  segments: 16,
-  stiffness: 0.2,
-  maxBend: (20 * Math.PI) / 180,
-  drag: 2.2,
-};
+export const PAPER: Material = paper(16);
+
 /**
- * The same paper in fewer, wider segments, for leaves riffled past at speed:
- * a third of the page copies to build, and nobody can see the difference.
+ * Paper in `segments` pieces. However finely it is cut, it curls no tighter
+ * than about a fifth of its width, so a page divided coarsely on a small
+ * screen behaves like one divided finely on a large one.
  */
-export const PAPER_QUICK: Material = {
-  segments: 6,
-  stiffness: 0.2,
-  maxBend: (44 * Math.PI) / 180,
-  drag: 2.2,
-};
+export function paper(segments: number): Material {
+  const minRadius = 0.18;
+  return {
+    segments,
+    stiffness: 0.2,
+    maxBend: 2 * Math.asin(Math.min(1, 1 / (2 * segments * minRadius))),
+    drag: 2.2,
+  };
+}
 export const BOARD: Material = { segments: 1, stiffness: 1, maxBend: 0, drag: 1.2 };
 
 /** Gravity scales with the page, so a turn takes the same time at any size. */
 const GRAVITY_PER_WIDTH = 22;
 const ITERATIONS = 14;
-/**
- * Bending is resisted over longer spans too (in segments), more gently. A
- * sheet resists rolling up as a whole, not only kinking locally: without
- * this a page can curl into a loop and roll slowly across the spine, which
- * real paper springs straight out of.
- */
+/** Spans (in segments) over which bending is also resisted, and how firmly. */
 const LONG_SPANS = [2, 4];
 const LONG_SPAN_WEIGHT = 0.5;
 /**
@@ -236,7 +231,18 @@ export class PageSim {
     pz[b] -= dz * c * wb;
   }
 
-  /** Paper resists bending: softly toward straight, firmly at its tightest. */
+  /**
+   * Paper resists bending: neighbours two apart want to be a straight line's
+   * length apart - softly toward flat, and firmly never closer than the
+   * tightest curve paper can make. Then more gently over longer spans, so
+   * the sheet resists rolling up as a whole, not only kinking locally, and
+   * arches rather than folding at one place. (A page let go without that
+   * can curl into a loop and roll slowly across the spine.)
+   *
+   * While held the long spans are off: the hand already decides the shape -
+   * measured, they barely change it - and stiffness fighting the hand only
+   * stretches the paper between.
+   */
   private solveBending() {
     const { n, seg } = this;
     const stiff = this.material.stiffness;
@@ -247,6 +253,7 @@ export class PageSim {
       this.relax(i - 1, i + 1, minSpan, BEND_STOP, true);
       this.relax(i - 1, i + 1, span, stiff, true);
     }
+    if (this.held > 0) return;
     for (const reach of LONG_SPANS) {
       if (reach * 2 > n) break;
       const rest = seg * reach * 2;
@@ -256,9 +263,16 @@ export class PageSim {
     }
   }
 
-  /** Paper does not stretch, or compress along its length. */
+  /**
+   * Paper does not stretch, or compress along its length. Swept from the
+   * spine out and then from the edge back: with both ends held - the spine
+   * always, the hand often - a sweep one way leaves its error piled up at
+   * the far end, and the stiffness that arches the page would stretch it.
+   */
   private solveLength() {
-    for (let i = 1; i <= this.n; i++) this.relax(i - 1, i, this.seg, 1, false);
+    const { n, seg } = this;
+    for (let i = 1; i <= n; i++) this.relax(i - 1, i, seg, 1, false);
+    for (let i = n; i >= 1; i--) this.relax(i - 1, i, seg, 1, false);
   }
 
   /**

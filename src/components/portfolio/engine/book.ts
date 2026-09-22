@@ -1,4 +1,4 @@
-import { BOARD, PAPER, PAPER_QUICK, PageSim, type Material } from "./sim";
+import { BOARD, PageSim, paper, type Material } from "./sim";
 
 /**
  * The book, drawn.
@@ -55,6 +55,7 @@ type Strip = {
 };
 
 type Leaf = {
+  /** Its place in the book; -1 for the stand-in that makes a jump. */
   index: number;
   el: HTMLDivElement;
   strips: Strip[];
@@ -145,8 +146,13 @@ export class BookEngine {
   private drag: Drag | null = null;
   /** A page lifted a little under the mouse, waiting to be taken. */
   private hover: { leaf: Leaf; side: 1 | -1 } | null = null;
-  /** Queued turns of a riffle to a far spread. */
-  private riffle: number[] = [];
+  /** The stand-in leaf of a jump, while it is in the air. */
+  private jumper: Leaf | null = null;
+  /**
+   * During a jump, the side the stand-in leaves keeps showing what was there
+   * until it lands on top - as a real page would cover it.
+   */
+  private pinned: { turned?: number | null; unturned?: number | null } = {};
   private prepareQueued = false;
   private raf = 0;
   private last = 0;
@@ -213,7 +219,8 @@ export class BookEngine {
       this.schedulePrepare();
       return;
     }
-    for (const leaf of this.leaves.values()) {
+    const all = [...this.leaves.values(), ...(this.jumper ? [this.jumper] : [])];
+    for (const leaf of all) {
       leaf.sim.rescale(pageW);
       if (leaf.hand) leaf.hand.reach = leaf.hand.index * leaf.sim.seg;
       if (leaf.el.style.display !== "none") this.render(leaf);
@@ -223,7 +230,7 @@ export class BookEngine {
 
   next() {
     if (this.drag) return;
-    this.cancelRiffle();
+    this.finishJump();
     if (this.reduced) return this.setSpread(this.committedSpread() + 1);
     if (this.hover?.side === -1) this.endHover();
     this.launch(this.forwardLeaf(), 1);
@@ -231,42 +238,79 @@ export class BookEngine {
 
   prev() {
     if (this.drag) return;
-    this.cancelRiffle();
+    this.finishJump();
     if (this.reduced) return this.setSpread(this.committedSpread() - 1);
     if (this.hover?.side === 1) this.endHover();
     this.launch(this.backwardLeaf(), -1);
   }
 
-  /** A riffle still queued stops the moment the reader does anything else. */
-  private cancelRiffle() {
-    for (const id of this.riffle) window.clearTimeout(id);
-    this.riffle = [];
-  }
-
-  /** Go to a spread, riffling through the last few leaves on the way. */
+  /**
+   * Go to any spread in a single turn.
+   *
+   * The next spread is an ordinary turn. Further away, one stand-in leaf
+   * turns instead of every leaf between: it carries the page you are
+   * looking at on the side that lifts and the page you are going to on the
+   * side that lands, so it reads as the one page that takes you there -
+   * and costs one page to draw, not a dozen.
+   */
   goTo(spread: number) {
-    this.cancelRiffle();
     const target = Math.max(0, Math.min(this.leafCount, Math.round(spread)));
-    if (target === this.committedSpread()) return;
+    const now = this.committedSpread();
+    if (target === now) return;
     if (this.reduced) return this.setSpread(target);
+    if (Math.abs(target - now) === 1) return target > now ? this.next() : this.prev();
+
     // Anything already in the air is laid where it was going.
     if (this.moving.size > 0 || this.drag) this.settleAll();
+    const from = this.committedSpread();
+    const forward = target > from;
+    const page = (p: number) => (p >= 0 && p < this.count ? p : null);
 
-    const now = this.committedSpread();
-    const forward = target > now;
-    const RIFFLE = 4;
-    if (Math.abs(target - now) > RIFFLE) this.setSpread(forward ? target - RIFFLE : target + RIFFLE);
-    const steps = Math.abs(target - this.committedSpread());
-    for (let k = 0; k < steps; k++) {
-      const id = window.setTimeout(() => {
-        this.riffle = this.riffle.filter((t) => t !== id);
-        if (this.destroyed) return;
-        const j = forward ? this.forwardLeaf() : this.backwardLeaf();
-        // The last leaf of a riffle is the one looked at: built fine.
-        if (j !== null) this.launch(j, forward ? 1 : -1, 0.5, k < steps - 1);
-      }, k * 90);
-      this.riffle.push(id);
-    }
+    // Lifting side: what is showing now. Landing side: where you are going.
+    const front = forward ? 2 * from : 2 * target;
+    const back = forward ? 2 * target - 1 : 2 * from - 1;
+    this.pinned = forward ? { turned: page(2 * from - 1) } : { unturned: page(2 * from) };
+    for (let j = 0; j < this.leafCount; j++) this.sides[j] = j < target ? -1 : 1;
+
+    const board = front === 0 || back === this.count - 1;
+    const material = board ? BOARD : paper(this.segmentsFor("jump"));
+    const { el, strips } = this.buildStrips(front, back, material);
+    el.style.display = "";
+    this.layer.appendChild(el);
+    const start: 1 | -1 = forward ? 1 : -1;
+    const leaf: Leaf = {
+      index: -1,
+      el,
+      strips,
+      sim: new PageSim(this.W, material, start),
+      target: forward ? -1 : 1,
+      hand: null,
+      releasedAt: 0,
+      rank: 0,
+    };
+    this.jumper = leaf;
+    this.moving.add(leaf);
+    this.refreshSlots();
+    this.render(leaf);
+    this.startHand(leaf, {
+      phi0: forward ? 0 : Math.PI,
+      phi1: forward ? Math.PI : 0,
+      lift: board ? 1 : TURN_LIFT,
+      duration: board ? 0.95 : 0.85,
+      releaseAt: board ? 0.9 : 0.84,
+      ease: "inOut",
+      peek: 0,
+    });
+    this.emit();
+    this.schedulePrepare();
+  }
+
+  /** A jump still in the air is laid down at once when something else starts. */
+  private finishJump() {
+    const j = this.jumper;
+    if (!j) return;
+    j.sim.place(j.target);
+    this.land(j);
   }
 
   /** Lift the cover a little and let it drop: a hint that it opens. */
@@ -288,7 +332,6 @@ export class BookEngine {
 
   destroy() {
     this.destroyed = true;
-    this.cancelRiffle();
     cancelAnimationFrame(this.raf);
     const root = this.root;
     root.removeEventListener("pointerdown", this.onPointerDown);
@@ -438,8 +481,14 @@ export class BookEngine {
   private refreshSlots() {
     const turned = this.topTurned();
     const unturned = this.topUnturned();
-    const turnedPage = turned === null ? null : turned * 2 + 1;
-    const unturnedPage = unturned === null ? null : unturned * 2;
+    const turnedPage =
+      this.pinned.turned !== undefined ? this.pinned.turned : turned === null ? null : turned * 2 + 1;
+    const unturnedPage =
+      this.pinned.unturned !== undefined
+        ? this.pinned.unturned
+        : unturned === null
+          ? null
+          : unturned * 2;
     const left = this.dir === 1 ? turnedPage : unturnedPage;
     const right = this.dir === 1 ? unturnedPage : turnedPage;
     this.fill(this.slotLeft, this.shadowLeft, left, "left");
@@ -467,6 +516,18 @@ export class BookEngine {
   }
 
   /**
+   * How many strips a page is cut into: about one per 30px of page, enough
+   * for a smooth curl and no more - every strip is two more copies of a
+   * page to build. The stand-in of a jump turns fast and gets fewer.
+   */
+  private segmentsFor(use: "page" | "jump") {
+    const W = this.W || 480;
+    return use === "page"
+      ? Math.max(10, Math.min(16, Math.round(W / 30)))
+      : Math.max(8, Math.min(12, Math.round(W / 44)));
+  }
+
+  /**
    * Keep the two leaves that can move next built, laid out and hidden, so a
    * grab starts on the very next frame. Everything else not in the air is
    * parked out of layout, and the least recently used are thrown away.
@@ -488,14 +549,24 @@ export class BookEngine {
   private prepare() {
     if (this.W === 0 || this.reduced) return;
     const ready = new Set<number>();
+    // One new leaf per idle moment: building one is a few dozen page copies,
+    // and two at once is long enough to catch a drag that starts meanwhile.
+    let built = false;
     for (const j of [this.forwardLeaf(), this.backwardLeaf()]) {
       if (j === null) continue;
+      ready.add(j);
+      if (!this.leaves.has(j)) {
+        if (built) {
+          this.schedulePrepare();
+          continue;
+        }
+        built = true;
+      }
       // Warm the flat copies that turning this leaf will reveal, so the
       // landing frame only swaps nodes and never has to clone one.
       for (const p of [j * 2 - 1, j * 2 + 1, j * 2 + 2]) {
         if (p >= 0 && p < this.count) this.slotPage(p);
       }
-      ready.add(j);
       const leaf = this.buildLeaf(j);
       if (this.moving.has(leaf)) continue;
       leaf.sim.rescale(this.W);
@@ -517,26 +588,37 @@ export class BookEngine {
     }
   }
 
-  /**
-   * Build the strips for leaf j, once. A quick leaf is built coarse for a
-   * riffle; a leaf that may be picked up is always built fine, replacing a
-   * coarse one if that is what is cached.
-   */
-  private buildLeaf(j: number, quick = false): Leaf {
+  /** Build the strips for leaf j, once. */
+  private buildLeaf(j: number): Leaf {
     const cached = this.leaves.get(j);
-    const coarse = cached && !this.isBoard(j) && cached.sim.n < PAPER.segments;
-    if (cached && !(coarse && !quick && !this.moving.has(cached))) {
+    if (cached) {
       // Most recently used goes to the back of the line.
       this.leaves.delete(j);
       this.leaves.set(j, cached);
       return cached;
     }
-    if (cached) {
-      cached.el.remove();
-      this.leaves.delete(j);
-    }
 
-    const material: Material = this.isBoard(j) ? BOARD : quick ? PAPER_QUICK : PAPER;
+    const material: Material = this.isBoard(j) ? BOARD : paper(this.segmentsFor("page"));
+    const { el, strips } = this.buildStrips(j * 2, j * 2 + 1, material);
+    el.style.display = "none";
+    this.layer.appendChild(el);
+    const side: 1 | -1 = this.sides[j] === -1 ? -1 : 1;
+    const leaf: Leaf = {
+      index: j,
+      el,
+      strips,
+      sim: new PageSim(this.W || 1, material, side),
+      target: side,
+      hand: null,
+      releasedAt: 0,
+      rank: 0,
+    };
+    this.leaves.set(j, leaf);
+    return leaf;
+  }
+
+  /** A leaf's strips: page `front` on one side, page `back` on the other. */
+  private buildStrips(front: number, back: number, material: Material) {
     const n = material.segments;
     const el = document.createElement("div");
     el.className = "pbook-leaf";
@@ -555,28 +637,13 @@ export class BookEngine {
       // spine and which "far" swaps with the binding.
       const near = `calc(var(--pw) * ${-i / n})`;
       const far = `calc(var(--pw) * ${(i + 1) / n - 1} + ${ov}px)`;
-      const front = this.face(j * 2, rtl ? far : near, false);
-      const back = this.face(j * 2 + 1, rtl ? near : far, true);
-      strip.append(front.face, back.face);
+      const f = this.face(front, rtl ? far : near, false);
+      const b = this.face(back, rtl ? near : far, true);
+      strip.append(f.face, b.face);
       el.appendChild(strip);
-      strips.push({ el: strip, frontShade: front.shade, backShade: back.shade });
+      strips.push({ el: strip, frontShade: f.shade, backShade: b.shade });
     }
-
-    el.style.display = "none";
-    this.layer.appendChild(el);
-    const side: 1 | -1 = this.sides[j] === -1 ? -1 : 1;
-    const leaf: Leaf = {
-      index: j,
-      el,
-      strips,
-      sim: new PageSim(this.W || 1, material, side),
-      target: side,
-      hand: null,
-      releasedAt: 0,
-      rank: 0,
-    };
-    this.leaves.set(j, leaf);
-    return leaf;
+    return { el, strips };
   }
 
   private face(page: number, offset: string, back: boolean) {
@@ -592,8 +659,8 @@ export class BookEngine {
   }
 
   /** Take leaf j off its stack and into the air. */
-  private liftLeaf(j: number, quick = false): Leaf {
-    const leaf = this.buildLeaf(j, quick);
+  private liftLeaf(j: number): Leaf {
+    const leaf = this.buildLeaf(j);
     if (this.moving.has(leaf)) return leaf;
     leaf.sim.rescale(this.W);
     leaf.sim.place(this.sides[j] === -1 ? -1 : 1);
@@ -629,10 +696,10 @@ export class BookEngine {
   }
 
   /** Turn leaf j over, the way a hand flips a page. */
-  private launch(j: number | null, from: 1 | -1, duration?: number, quick = false) {
+  private launch(j: number | null, from: 1 | -1, duration?: number) {
     if (j === null) return;
     // Resting, lifted under the mouse, or still in the air: same page.
-    const leaf = this.liftLeaf(j, quick);
+    const leaf = this.liftLeaf(j);
     if (this.hover?.leaf === leaf) this.hover = null;
     const board = this.isBoard(j);
     leaf.target = from === 1 ? -1 : 1;
@@ -651,7 +718,7 @@ export class BookEngine {
 
   /** Send a leaf, from wherever it is, to where it is committed to go. */
   private redirect(leaf: Leaf) {
-    const board = this.isBoard(leaf.index);
+    const board = leaf.sim.n === 1;
     this.startHand(leaf, {
       phi0: this.phiOf(leaf, leaf.sim.n),
       phi1: leaf.target === -1 ? Math.PI : 0,
@@ -667,10 +734,18 @@ export class BookEngine {
   private land(leaf: Leaf) {
     const side = leaf.target;
     leaf.sim.place(side);
-    this.sides[leaf.index] = side;
     leaf.hand = null;
     this.moving.delete(leaf);
-    leaf.el.style.visibility = "hidden";
+    if (leaf === this.jumper) {
+      // The stand-in has done its work: the real pages beneath it are
+      // already where it was taking you.
+      this.jumper = null;
+      this.pinned = {};
+      leaf.el.remove();
+    } else {
+      this.sides[leaf.index] = side;
+      leaf.el.style.visibility = "hidden";
+    }
     this.refreshSlots();
     this.emit();
     this.schedulePrepare();
@@ -690,7 +765,7 @@ export class BookEngine {
 
   private onPointerDown(e: PointerEvent) {
     if (this.reduced || this.drag || e.button !== 0 || this.W === 0) return;
-    this.cancelRiffle();
+    this.finishJump();
     const x = this.toBook(e.clientX);
     const side: 1 | -1 = x >= 0 ? 1 : -1;
 
@@ -790,7 +865,7 @@ export class BookEngine {
       index,
       phi0,
       phi1: side === 1 ? 0 : Math.PI,
-      lift: this.isBoard(leaf.index) ? HOVER_BOARD.lift : HOVER_PAPER.lift,
+      lift: leaf.sim.n === 1 ? HOVER_BOARD.lift : HOVER_PAPER.lift,
       duration: 0.3,
       releaseAt: 0.8,
       ease: "out",
@@ -814,7 +889,7 @@ export class BookEngine {
     if (!d || e.pointerId !== d.pointerId) return;
     this.drag = null;
     const leaf = d.leaf;
-    const board = this.isBoard(leaf.index);
+    const board = leaf.sim.n === 1;
 
     if (!d.moved && e.type === "pointerup" && performance.now() - d.startT < 400) {
       // A tap on a page turns it, by its edge, like the button.
@@ -885,7 +960,7 @@ export class BookEngine {
         d.handX += (d.goalX - d.handX) * 0.3;
         const r = d.reach;
         const x = Math.max(-r * 0.99, Math.min(r, d.handX));
-        const board = this.isBoard(d.leaf.index);
+        const board = d.leaf.sim.n === 1;
         let z = (board ? 1 : DRAG_LIFT) * Math.sqrt(Math.max(0, r * r - x * x));
         // A page taken already lifted eases down onto the drag's arc.
         d.zFloor *= 0.985;
