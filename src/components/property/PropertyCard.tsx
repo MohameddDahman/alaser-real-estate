@@ -176,8 +176,8 @@ export function PropertyRow({
               {t("overYears", { years: property.paymentPlan.years })}
             </p>
           )}
-          <p dir="ltr" className="text-xs text-fg-subtle tabular-nums xl:mt-1">
-            {property.refCode}
+          <p className="text-xs text-fg-subtle tabular-nums xl:mt-1">
+            <span dir="ltr">{property.refCode}</span>
           </p>
         </div>
 
@@ -254,7 +254,7 @@ function Price({ property, large = false }: { property: Property; large?: boolea
   return (
     <div>
       <p className={cn("whitespace-nowrap font-bold leading-tight text-fg tabular-nums", large ? "text-xl" : "text-lg")}>
-        <span dir="ltr">{meta.price}</span>
+        {meta.price}
       </p>
       {meta.period ? (
         <p className="text-xs text-fg-subtle">{meta.period === "month" ? t("perMonth") : t("perYear")}</p>

@@ -220,7 +220,7 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
             <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{roomLabel(current) || current.alt[locale]}</p>
-                <p className="text-sm text-white/60" dir="ltr">
+                <p className="text-sm text-white/60">
                   {t("galleryCounter", { current: index + 1, total: count })}
                 </p>
               </div>

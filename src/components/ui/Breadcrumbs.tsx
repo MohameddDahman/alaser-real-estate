@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
@@ -15,10 +16,11 @@ export function Breadcrumbs({
   rtl?: boolean;
   className?: string;
 }) {
+  const t = useTranslations("nav");
   const Sep = rtl ? ChevronLeft : ChevronRight;
 
   return (
-    <nav aria-label="Breadcrumb" className={cn("text-sm", className)}>
+    <nav aria-label={t("breadcrumb")} className={cn("text-sm", className)}>
       <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {items.map((item, i) => {
           const last = i === items.length - 1;

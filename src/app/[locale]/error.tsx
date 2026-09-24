@@ -35,8 +35,8 @@ export default function Error({
       </button>
 
       {error.digest && (
-        <p className="mt-6 text-xs text-fg-subtle tabular-nums" dir="ltr">
-          {error.digest}
+        <p className="mt-6 text-xs text-fg-subtle tabular-nums">
+          <span dir="ltr">{error.digest}</span>
         </p>
       )}
     </div>

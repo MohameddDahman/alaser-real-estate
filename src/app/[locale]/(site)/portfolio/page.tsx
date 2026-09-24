@@ -76,7 +76,9 @@ export default async function PortfolioPage({ params }: Props) {
             : null,
       perMeter:
         !property.price.onRequest && property.price.amount && property.listingType === "sale"
-          ? pricePerMeter(property.price.amount, specs.builtUpArea, locale)
+          ? tp("pricePerMeter", {
+              value: pricePerMeter(property.price.amount, specs.builtUpArea, locale) ?? "",
+            })
           : null,
       area: `${formatNumber(specs.builtUpArea, locale)} m²`,
       floor,
@@ -255,7 +257,7 @@ export default async function PortfolioPage({ params }: Props) {
                       </span>
                     </span>
                     <span className="hidden shrink-0 text-end font-bold text-fg tabular-nums sm:block">
-                      <span dir="ltr">{units[i].price}</span>
+                      {units[i].price}
                       {units[i].period && (
                         <span className="block text-xs font-normal text-fg-subtle">{units[i].period}</span>
                       )}

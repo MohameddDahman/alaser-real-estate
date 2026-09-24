@@ -194,7 +194,7 @@ export function PropertyEditor({
               <span className="tabular-nums">{draft.builtUpArea}</span> m²
             </p>
 
-            <p className="mt-3 text-lg font-bold text-fg tabular-nums" dir="ltr">
+            <p className="mt-3 text-lg font-bold text-fg tabular-nums">
               {draft.price ? formatPrice(draft.price, locale, property.price.currency) : "—"}
             </p>
 

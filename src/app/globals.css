@@ -39,6 +39,7 @@
   --color-primary-hover: #1847a8;
   --color-primary-soft: #ebf1fd;
   --color-gold: #e2a72e;          /* the search frame, and nothing else loud */
+  --color-gold-deep: #85590a;     /* gold as text on paper - 5:1 on the sheet */
 
   --color-success: #15803d;       /* available, and every tick */
   --color-success-soft: #e8f5ec;
@@ -654,6 +655,16 @@
     box-shadow:
       inset 0 0 0 1px rgb(255 255 255 / 0.06),
       inset 0 0 48px rgb(0 0 0 / 0.45);
+  }
+
+  /* The brochure's small capitals: tracked caps in Latin, weight alone in
+     Arabic, where tracking would break the joins. */
+  .pbook-label {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: calc(var(--ls-meta) * 0.75);
+    text-transform: var(--case-meta);
+    line-height: 1.35;
   }
 
   /* Uncoated stock: a faint warm grain, never a flat fill. */

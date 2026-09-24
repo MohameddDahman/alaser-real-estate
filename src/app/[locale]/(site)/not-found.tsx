@@ -17,7 +17,7 @@ export default async function NotFound() {
       <span className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
         <SearchX className="size-7" strokeWidth={1.75} aria-hidden="true" />
       </span>
-      <p className="mt-6 text-sm font-semibold text-fg-subtle" dir="ltr">
+      <p className="mt-6 text-sm font-semibold text-fg-subtle">
         404
       </p>
       <h1 className="mt-1 max-w-2xl text-title font-bold text-fg">{t("title")}</h1>

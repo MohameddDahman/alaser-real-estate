@@ -56,11 +56,11 @@ export function StickyEnquiry({
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="truncate font-bold text-fg tabular-nums">
-                <span dir="ltr">{price}</span>
-                {period && <span className="ms-1 text-sm font-normal text-fg-subtle">{period}</span>}
+                {price}
+                {period && <span className="text-sm font-normal text-fg-subtle"> {period}</span>}
               </p>
-              <p className="truncate text-xs text-fg-subtle" dir="ltr">
-                {refCode}
+              <p className="truncate text-xs text-fg-subtle">
+                <span dir="ltr">{refCode}</span>
               </p>
             </div>
 

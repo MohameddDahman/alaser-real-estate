@@ -190,8 +190,8 @@ export default async function PropertyPage({ params }: Props) {
 
           <div className="lg:text-end">
             <p className="text-2xl font-bold text-fg tabular-nums">
-              <span dir="ltr">{price}</span>
-              {period && <span className="ms-1.5 text-base font-normal text-fg-muted">{period}</span>}
+              {price}
+              {period && <span className="text-base font-normal text-fg-muted"> {period}</span>}
             </p>
             {meta.perMeter && (
               <p className="text-sm text-fg-subtle">{t("pricePerMeter", { value: meta.perMeter })}</p>
@@ -372,8 +372,8 @@ export default async function PropertyPage({ params }: Props) {
                 {property.listingType === "sale" ? t("askingPrice") : t("rentLabel")}
               </p>
               <p className="mt-0.5 text-2xl font-bold text-fg tabular-nums">
-                <span dir="ltr">{price}</span>
-                {period && <span className="ms-1.5 text-base font-normal text-fg-muted">{period}</span>}
+                {price}
+                {period && <span className="text-base font-normal text-fg-muted"> {period}</span>}
               </p>
               {meta.perMeter && (
                 <p className="text-sm text-fg-subtle">{t("pricePerMeter", { value: meta.perMeter })}</p>
