@@ -10,6 +10,7 @@ import { ArrowUpDown, Check, Search, SlidersHorizontal, X } from "lucide-react";
 import { filterParsers, SORTS, activeFilterCount, type RawFilters } from "@/lib/filters";
 import { areas, propertyTypes, tenures } from "@/content/client-facts";
 import { useFilterTransition } from "./FiltersProvider";
+import { Select } from "@/components/ui/Select";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
@@ -323,27 +324,25 @@ export function SortSelect() {
   const [filters, setFilters] = useFilters();
 
   return (
-    <label className="flex min-w-0 items-center gap-2">
-      <span className="hidden shrink-0 text-sm text-fg-muted sm:inline">{tl("sort")}</span>
-      <span className="relative block min-w-0">
-        <ArrowUpDown
-          className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
-          strokeWidth={2}
-          aria-hidden="true"
-        />
-        <select
-          value={filters.sort}
-          aria-label={tl("sort")}
-          onChange={(e) => setFilters({ sort: e.target.value as (typeof SORTS)[number] })}
-          className="field min-h-10 max-w-[15rem] truncate rounded-full py-2 ps-9 text-sm font-medium"
-        >
-          <option value="newest">{tl("sortNewest")}</option>
-          <option value="price-asc">{tl("sortPriceAsc")}</option>
-          <option value="price-desc">{tl("sortPriceDesc")}</option>
-          <option value="area-desc">{tl("sortAreaDesc")}</option>
-        </select>
+    <div className="flex min-w-0 items-center gap-2">
+      <span aria-hidden="true" className="hidden shrink-0 text-sm text-fg-muted sm:inline">
+        {tl("sort")}
       </span>
-    </label>
+      <Select
+        variant="pill"
+        icon={ArrowUpDown}
+        label={tl("sort")}
+        value={filters.sort}
+        onChange={(value) => setFilters({ sort: value as (typeof SORTS)[number] })}
+        options={[
+          { value: "newest", label: tl("sortNewest") },
+          { value: "price-asc", label: tl("sortPriceAsc") },
+          { value: "price-desc", label: tl("sortPriceDesc") },
+          { value: "area-desc", label: tl("sortAreaDesc") },
+        ]}
+        className="min-w-0 max-w-[15rem]"
+      />
+    </div>
   );
 }
 

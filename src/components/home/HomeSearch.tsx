@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Building2, MapPin, Search, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, MapPin, Search, Wallet } from "lucide-react";
 
 import { useRouter } from "@/i18n/navigation";
+import { Select } from "@/components/ui/Select";
 import { areas, propertyTypes } from "@/content/client-facts";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -19,17 +20,18 @@ import { cn } from "@/lib/utils";
 
 type Mode = "all" | "sale" | "rent";
 
+// Figures in Latin digits, the way every price on the site is written.
 const SALE_BUDGETS = [
-  { value: "0-2500000", en: "Up to 2.5M EGP", ar: "حتى ٢٫٥ مليون جنيه" },
-  { value: "2500000-5000000", en: "2.5M – 5M EGP", ar: "٢٫٥ – ٥ مليون جنيه" },
-  { value: "5000000-10000000", en: "5M – 10M EGP", ar: "٥ – ١٠ مليون جنيه" },
-  { value: "10000000-", en: "Over 10M EGP", ar: "أكثر من ١٠ مليون جنيه" },
+  { value: "0-2500000", en: "Up to 2.5M EGP", ar: "حتى 2.5 مليون جنيه" },
+  { value: "2500000-5000000", en: "2.5M – 5M EGP", ar: "2.5 – 5 مليون جنيه" },
+  { value: "5000000-10000000", en: "5M – 10M EGP", ar: "5 – 10 مليون جنيه" },
+  { value: "10000000-", en: "Over 10M EGP", ar: "أكثر من 10 مليون جنيه" },
 ];
 
 const RENT_BUDGETS = [
-  { value: "0-15000", en: "Up to 15,000 EGP / month", ar: "حتى ١٥ ألف جنيه شهريًا" },
-  { value: "15000-30000", en: "15,000 – 30,000 EGP / month", ar: "١٥ – ٣٠ ألف جنيه شهريًا" },
-  { value: "30000-", en: "Over 30,000 EGP / month", ar: "أكثر من ٣٠ ألف جنيه شهريًا" },
+  { value: "0-15000", en: "Up to 15,000 EGP / month", ar: "حتى 15,000 جنيه شهريًا" },
+  { value: "15000-30000", en: "15,000 – 30,000 EGP / month", ar: "15,000 – 30,000 جنيه شهريًا" },
+  { value: "30000-", en: "Over 30,000 EGP / month", ar: "أكثر من 30,000 جنيه شهريًا" },
 ];
 
 export function HomeSearch({ locale, className }: { locale: Locale; className?: string }) {
@@ -95,72 +97,44 @@ export function HomeSearch({ locale, className }: { locale: Locale; className?: 
         role="search"
         className="grid gap-1 rounded-xl border-4 border-gold bg-gold shadow-pop md:grid-cols-[1fr_1fr_1fr_auto]"
       >
-        <Field icon={MapPin} label={t("area")} id="hs-area">
-          <select id="hs-area" value={area} onChange={(e) => setArea(e.target.value)} className={selectClass}>
-            <option value="">{t("anyArea")}</option>
-            {areas.map((a) => (
-              <option key={a.slug} value={a.slug}>
-                {a.name[locale]}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <Select
+          icon={MapPin}
+          label={t("area")}
+          value={area}
+          onChange={setArea}
+          options={[
+            { value: "", label: t("anyArea") },
+            ...areas.map((a) => ({ value: a.slug, label: a.name[locale] })),
+          ]}
+        />
 
-        <Field icon={Building2} label={t("type")} id="hs-type">
-          <select id="hs-type" value={type} onChange={(e) => setType(e.target.value)} className={selectClass}>
-            <option value="">{t("anyType")}</option>
-            {propertyTypes.map((p) => (
-              <option key={p.slug} value={p.slug}>
-                {p.name[locale]}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <Select
+          icon={Building2}
+          label={t("type")}
+          value={type}
+          onChange={setType}
+          options={[
+            { value: "", label: t("anyType") },
+            ...propertyTypes.map((p) => ({ value: p.slug, label: p.name[locale] })),
+          ]}
+        />
 
-        <Field icon={Wallet} label={t("budget")} id="hs-budget">
-          <select id="hs-budget" value={budget} onChange={(e) => setBudget(e.target.value)} className={selectClass}>
-            <option value="">{t("anyBudget")}</option>
-            {budgets.map((b) => (
-              <option key={b.value} value={b.value}>
-                {locale === "ar" ? b.ar : b.en}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <Select
+          icon={Wallet}
+          label={t("budget")}
+          value={budget}
+          onChange={setBudget}
+          options={[
+            { value: "", label: t("anyBudget") },
+            ...budgets.map((b) => ({ value: b.value, label: locale === "ar" ? b.ar : b.en })),
+          ]}
+        />
 
         <button type="submit" className="btn btn-primary min-h-14 rounded-lg px-8 text-base">
           <Search className="size-5" strokeWidth={2.25} aria-hidden="true" />
           {t("submit")}
         </button>
       </form>
-    </div>
-  );
-}
-
-// 16px minimum, or iOS zooms the page on focus.
-const selectClass =
-  "w-full cursor-pointer appearance-none bg-transparent text-[1rem] font-medium text-fg outline-none";
-
-function Field({
-  icon: Icon,
-  label,
-  id,
-  children,
-}: {
-  icon: LucideIcon;
-  label: string;
-  id: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-h-14 items-center gap-3 rounded-lg bg-canvas px-4 py-1.5 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-primary">
-      <Icon className="size-5 shrink-0 text-fg-subtle" strokeWidth={1.75} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <label htmlFor={id} className="block text-xs text-fg-subtle">
-          {label}
-        </label>
-        {children}
-      </div>
     </div>
   );
 }

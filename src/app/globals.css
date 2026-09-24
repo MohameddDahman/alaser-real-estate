@@ -357,16 +357,11 @@
   .field[aria-invalid="true"] {
     border-color: var(--color-danger);
   }
-  select.field {
-    appearance: none;
-    padding-inline-end: 2.5rem;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23525a6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    cursor: pointer;
-  }
-  [dir="rtl"] select.field {
-    background-position: left 0.75rem center;
+
+  /* A dropdown list arriving: a short fade and settle from the side it
+     opens on (set with origin-top / origin-bottom). */
+  .animate-pop-in {
+    animation: pop-in 140ms var(--ease-sheet) both;
   }
 
   /* Eyebrow / label - the drafting voice, kept for the admin and the book.
@@ -696,12 +691,6 @@
 }
 
 @layer utilities {
-  .animate-marquee {
-    animation-name: marquee;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-  }
-
   /* Hides a scrollbar on a deliberately draggable rail without removing the
      ability to scroll it. */
   .no-scrollbar {
@@ -713,7 +702,13 @@
   }
 }
 
-@keyframes marquee {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-100%, 0, 0); }
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
