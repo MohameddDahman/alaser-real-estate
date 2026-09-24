@@ -64,7 +64,7 @@ export function HomeSearch({ locale, className }: { locale: Locale; className?: 
 
   return (
     <div className={className}>
-      <div role="radiogroup" aria-label={t("listingType")} className="mb-3 flex gap-1.5">
+      <div role="radiogroup" aria-label={t("listingType")} className="on-navy mb-3 flex gap-1.5">
         {tabs.map((tab) => {
           const active = mode === tab.value;
           return (

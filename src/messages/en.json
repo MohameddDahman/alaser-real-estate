@@ -11,7 +11,8 @@
     "skipToContent": "Skip to content",
     "switchTo": "العربية",
     "home": "Home",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": "Breadcrumb",
+    "switchLanguage": "Switch to {language}"
   },
   "home": {
     "featuredTitle": "Featured properties",

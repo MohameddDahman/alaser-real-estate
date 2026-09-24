@@ -49,7 +49,9 @@ export function Header() {
           aria-label={locale === "ar" ? "الأسر — الصفحة الرئيسية" : "Alaser — home"}
         >
           <Mark className="h-7 w-auto sm:h-8" />
-          <span className="leading-none">
+          {/* The wordmark gives way first on the narrowest phones; the mark
+              and the link's label still say whose site this is. */}
+          <span className="hidden leading-none min-[400px]:block">
             <span className="block font-display text-[1rem] tracking-[0.26em] [font-variation-settings:'wdth'_100,'wght'_600]">
               ALASER
             </span>
@@ -59,7 +61,7 @@ export function Header() {
           </span>
         </Link>
 
-        <div className="ms-auto flex items-center gap-1 sm:gap-2">
+        <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <LocaleSwitch
             withIcon
             className="inline-flex min-h-10 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 sm:px-3"

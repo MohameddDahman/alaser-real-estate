@@ -11,7 +11,8 @@
     "skipToContent": "تخطٍ إلى المحتوى",
     "switchTo": "English",
     "home": "الرئيسية",
-    "breadcrumb": "مسار التنقل"
+    "breadcrumb": "مسار التنقل",
+    "switchLanguage": "التبديل إلى {language}"
   },
   "home": {
     "featuredTitle": "وحدات مميزة",

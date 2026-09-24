@@ -84,7 +84,7 @@ export default async function HomePage({
         <div className="shell relative pt-6 sm:pt-10">
           <h1 className="max-w-3xl text-display font-bold text-white">{t("heroTitle")}</h1>
           <p className="mt-3 max-w-2xl text-white/80 sm:text-lg">{t("heroSub")}</p>
-          <HomeSearch locale={locale} className="on-navy mt-7 sm:mt-9" />
+          <HomeSearch locale={locale} className="mt-7 sm:mt-9" />
         </div>
       </section>
 
