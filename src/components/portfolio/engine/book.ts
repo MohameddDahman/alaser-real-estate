@@ -476,6 +476,21 @@ export class BookEngine {
   /** Put the book at a position with no motion at all. */
   private setPosition(position: number) {
     const s = Math.max(0, Math.min(this.leafCount, position));
+    // Nothing should be in the air here; if anything is, take it out first,
+    // or its destination would argue with where the book is being put.
+    this.drag = null;
+    this.hover = null;
+    for (const leaf of [...this.moving]) {
+      leaf.hand = null;
+      this.moving.delete(leaf);
+      if (leaf === this.jumper) {
+        this.jumper = null;
+        this.pinned = {};
+        leaf.el.remove();
+      } else {
+        leaf.el.style.visibility = "hidden";
+      }
+    }
     for (let j = 0; j < this.leafCount; j++) this.sides[j] = j < s ? -1 : 1;
     this.refreshSlots();
     this.emit();
@@ -855,10 +870,33 @@ export class BookEngine {
   }
 
   private onPointerDown(e: PointerEvent) {
-    if (this.reduced || this.drag || e.button !== 0 || this.W === 0) return;
+    if (this.drag || e.button !== 0 || this.W === 0) return;
     this.finishJump();
     const x = this.toBook(e.clientX);
     const t = performance.now();
+
+    // With motion turned down, pages still turn where you tap them - they
+    // just change rather than fly. A tap is all this records.
+    if (this.reduced) {
+      this.drag = {
+        leaf: null,
+        origin: 1,
+        zFloor: 0,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startT: t,
+        moved: false,
+        startModel: x,
+        base: x,
+        gain: 1,
+        goalX: x,
+        handX: x,
+        reach: this.W,
+        trail: [{ t, x }],
+      };
+      return;
+    }
 
     if (this.single) {
       // One page on screen, and a finger could mean either direction: wait
@@ -1023,6 +1061,8 @@ export class BookEngine {
     if (!d.moved && Math.hypot(dx, dy) > 6) d.moved = true;
 
     if (!d.leaf) {
+      // Nothing to drag with motion turned down: only the tap counts.
+      if (this.reduced) return;
       // A one-page book deciding: a mostly vertical move is a scroll, not a
       // turn; toward the spine turns this page; away from it pulls back the
       // one before, which sweeps in from off the screen.
@@ -1057,10 +1097,12 @@ export class BookEngine {
     const tap = !d.moved && e.type === "pointerup" && quick;
 
     if (!d.leaf) {
-      // A one-page book, and no drag ever began: a tap. Near the spine goes
-      // back, anywhere else goes on - as on any reader.
+      // No drag ever began: a tap. Near the spine goes back, anywhere else
+      // goes on - as on any reader. In a two-page spread the side of the
+      // spine the tap fell on says which.
       if (tap) {
-        if (d.startModel < this.W * 0.3) this.prev();
+        const back = this.single || this.reduced ? d.startModel < this.W * 0.3 : d.startModel < 0;
+        if (back) this.prev();
         else this.next();
       }
       return;
