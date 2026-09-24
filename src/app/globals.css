@@ -570,8 +570,6 @@
     position: relative;
     width: calc(var(--pw) * 2);
     height: var(--ph);
-    perspective: 3200px;
-    perspective-origin: 50% 42%;
     touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
@@ -593,8 +591,7 @@
     height: var(--ph);
     overflow: hidden;
   }
-  .pbook-slot > [data-book-page],
-  .pbook-face > [data-book-page] {
+  .pbook-slot > [data-book-page] {
     position: absolute;
     top: 0;
     left: 0;
@@ -606,61 +603,73 @@
   .pbook-leaf {
     position: absolute;
     inset: 0;
-    transform-style: preserve-3d;
     pointer-events: none;
   }
   .pbook-layer {
     z-index: 1;
   }
-  .pbook-strip {
+
+  /* A turning page: a box whose edge is the fold line, clipping everything
+     on the far side of it; inside, the front where it lies and the back
+     turned over across the fold. */
+  .pbook-clip {
     position: absolute;
     top: 0;
     left: 0;
-    height: var(--ph);
-    transform-style: preserve-3d;
-    will-change: transform;
-  }
-  /* backface-visibility is not inherited, and a child the browser composites
-     on its own layer (the shade, whose opacity changes every frame) would
-     otherwise show through from behind. So the children get it too. */
-  .pbook-face,
-  .pbook-face > * {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-  .pbook-face {
-    position: absolute;
-    inset: 0;
     overflow: hidden;
+    transform-origin: 0 0;
   }
-  .pbook-face[data-back] {
-    transform: rotateY(180deg);
-  }
-  /* Darkens a strip as it turns away from the light. */
-  .pbook-shade {
+  .pbook-clip-inner {
     position: absolute;
-    inset: 0;
-    z-index: 40;
-    background: var(--color-ink);
-    opacity: 0;
-    pointer-events: none;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
   }
 
-  /* The shadow a lifted page casts on the one beneath it. */
-  .pbook-shadow {
+  /* Coated stock catches the light where it curls over: a bright line just
+     inside the fold, a breath of shadow right at it, then the sheet evenly
+     lit. Drawn once and moved, never repainted. */
+  .pbook-gloss {
     position: absolute;
-    inset-block: 0;
+    top: 0;
     left: 0;
-    width: 100%;
-    z-index: 35;
-    opacity: 0;
+    z-index: 45;
+    transform-origin: 0 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+    background: linear-gradient(
+      90deg,
+      rgb(10 13 24 / 0.18) 0,
+      rgb(255 255 255 / 0.55) calc(var(--pw) * 0.016),
+      rgb(255 255 255 / 0.16) calc(var(--pw) * 0.05),
+      rgb(255 255 255 / 0) calc(var(--pw) * 0.11),
+      rgb(10 13 24 / 0.035) calc(var(--pw) * 0.4),
+      rgb(10 13 24 / 0.07) var(--pw)
+    );
+  }
+
+  /* The shadow the lifted paper throws on the page it uncovers. */
+  .pbook-castbox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--pw);
+    height: var(--ph);
+    overflow: hidden;
     pointer-events: none;
   }
-  .pbook-shadow[data-edge="right"] {
-    background: linear-gradient(to right, rgb(10 13 24 / 0.9), rgb(10 13 24 / 0.55) 82%, transparent);
-  }
-  .pbook-shadow[data-edge="left"] {
-    background: linear-gradient(to left, rgb(10 13 24 / 0.9), rgb(10 13 24 / 0.55) 82%, transparent);
+  .pbook-cast {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform, opacity;
+    background: linear-gradient(
+      90deg,
+      rgb(10 13 24 / 0.3) 0,
+      rgb(10 13 24 / 0.12) calc(var(--pw) * 0.05),
+      rgb(10 13 24 / 0) calc(var(--pw) * 0.24)
+    );
   }
 
   /* The spine. Paper curves down into the binding, so it darkens there and
@@ -674,13 +683,11 @@
   }
   .pbook-gutter[data-side="right"] {
     background:
-      linear-gradient(90deg, rgb(10 13 24 / 0.24) 0%, rgb(10 13 24 / 0.09) 2.5%, rgb(255 255 255 / 0.1) 5%, rgb(10 13 24 / 0) 13%),
-      linear-gradient(270deg, rgb(10 13 24 / 0.05) 0%, rgb(10 13 24 / 0) 18%);
+      linear-gradient(90deg, rgb(10 13 24 / 0.16) 0%, rgb(10 13 24 / 0.05) 2%, rgb(255 255 255 / 0.18) 3.5%, rgb(10 13 24 / 0) 8%);
   }
   .pbook-gutter[data-side="left"] {
     background:
-      linear-gradient(270deg, rgb(10 13 24 / 0.24) 0%, rgb(10 13 24 / 0.09) 2.5%, rgb(255 255 255 / 0.1) 5%, rgb(10 13 24 / 0) 13%),
-      linear-gradient(90deg, rgb(10 13 24 / 0.05) 0%, rgb(10 13 24 / 0) 18%);
+      linear-gradient(270deg, rgb(10 13 24 / 0.16) 0%, rgb(10 13 24 / 0.05) 2%, rgb(255 255 255 / 0.18) 3.5%, rgb(10 13 24 / 0) 8%);
   }
   .pbook-gutter[data-hard] {
     background: none;
@@ -699,10 +706,13 @@
     line-height: 1.35;
   }
 
-  /* Uncoated stock: a faint warm grain, never a flat fill. */
+  /* Coated magazine stock: bright and smooth, no grain - only the sheen of
+     light falling across a glossy sheet from above. */
   .pbook-paper {
-    background-color: var(--color-sheet);
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.18 0 0 0 0 0.14 0 0 0 0.075 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+    background-color: #fbfbf9;
+    background-image:
+      linear-gradient(155deg, rgb(255 255 255 / 0.95) 0%, rgb(255 255 255 / 0) 42%),
+      linear-gradient(180deg, rgb(10 13 24 / 0) 55%, rgb(10 13 24 / 0.035) 100%);
   }
 
   /* Blocked in foil on the cover: a band of light crosses it, slowly. */

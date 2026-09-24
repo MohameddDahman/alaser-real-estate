@@ -117,16 +117,21 @@ Every available or reserved unit bound as a book on a desk: photograph on one
 page, measured sheet facing it. It builds itself from the listings, so there
 is nothing to maintain.
 
-- **Real page physics, our own engine** (`components/portfolio/engine/`, no
-  library). `sim.ts` simulates each page end-on as a chain of short segments -
-  gravity, air drag, bending stiffness with a minimum curl radius, landing on
-  the stack - using position-based dynamics. Covers are rigid boards.
-  `book.ts` draws a moving page as vertical strips placed at the simulated
-  angles, each carrying its slice of the front and back page, shaded by the
-  angle it turns from the light. Resting pages are plain flat copies.
-- Every page is moved by a "hand" holding one point of it: the pointer, a
-  button, a tap, or the finish of a released drag. Let go past the spine or
-  flick it and the page goes over; otherwise it falls back.
+- **Pages turn like a magazine's, by the corner** (`components/portfolio/engine/book.ts`,
+  our own, no library). Carry a corner across and the sheet folds along the
+  line halfway between where the corner was and where it is now: the part
+  past the fold lies turned over on top, showing the back of the sheet, with
+  a gloss where coated stock curls and a soft shadow on the page it
+  uncovers. It is two page copies under one clip, moved with transforms
+  only - no strips, no repainting, and type stays sharp. Resting pages are
+  plain flat copies.
+- The motion is eased, not simulated: the corner follows the pointer, a
+  button or a tap turns the page on a curve from its bottom corner, and a
+  released page finishes its turn - or falls back - without bounce. Let go
+  past the spine (on a phone, past the middle of the page) or flick it and
+  the page goes over. Under a mouse, a corner peels up to meet it.
+- The paper is coated magazine stock (`.pbook-paper`): bright and smooth,
+  with only a sheen of light across it.
 - Pages turn in order, as in a real book: forward always takes the first
   unturned page, back the last turned one - catching it mid-air if it is
   still moving - so the stacks can never be shuffled by fast input.
@@ -135,14 +140,14 @@ is nothing to maintain.
   contents run to a page per eight units, and a plate is added when the page
   count needs one. Folios are computed, never typed.
 - Arabic is bound on the right. The mirroring is done in the engine's
-  arithmetic, never with a negative CSS scale, which flips which 3D faces the
-  browser thinks are facing it.
+  arithmetic, never with a negative CSS scale, so no page is ever drawn
+  reversed.
 - Sizes are CSS (`.pbook-frame` in `globals.css`), so the server renders the
   book at its final size.
-- On a phone the book is a stack of single pages, as in the reference: swipe
-  toward the spine (or tap the outer side) and the page curls away to reveal
-  the next; swipe the other way (or tap near the spine) and the last one comes
-  back. The view never slides. Page text has minimum sizes so it stays legible
+- On a phone the book is a stack of single pages: swipe toward the spine (or
+  tap the outer side) and the page folds away to reveal the next; swipe the
+  other way (or tap near the spine) and the last one comes back. The view
+  never slides. Page text has minimum sizes so it stays legible
   at phone width; every page is checked clean for overflow from 272px up.
 - The book is `aria-hidden`; the same volume follows it as a real list of links.
 - In development, `window.__book.timeScale = 0.05` plays turns in slow motion.

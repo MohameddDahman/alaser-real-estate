@@ -28,16 +28,17 @@ import { cn } from "@/lib/utils";
 /**
  * The portfolio: every listing bound as a book on a desk.
  *
- * The page turning is our own (./engine): each page is simulated as a sheet
- * of paper - gravity, air, stiffness, a hand - and drawn as a curved surface
- * in 3D. This component is everything around it: the desk, the entrance as
- * the book rises off it, the book sliding to centre when it opens, the edges
- * of the page block, the controls and the strip of spreads.
+ * The page turning is our own (./engine): a page turns the way a magazine's
+ * does, by its corner - folded along a clean line with a gloss where it curls
+ * over and a soft shadow on the page it uncovers. This component is
+ * everything around it: the desk, the entrance as the book rises off it, the
+ * book sliding to centre when it opens, the edges of the page block, the
+ * controls and the strip of spreads.
  *
  * Sizes are CSS (see .pbook-frame in globals.css), so the server renders the
  * book at its final size and nothing moves when the engine arrives. On a
- * phone the book is read a page at a time, as the reference does it: each
- * page curls away past the spine and the next lies beneath.
+ * phone the book is read a page at a time: each page folds away past the
+ * spine and the next lies beneath.
  */
 
 export type SpreadMeta = {
@@ -271,7 +272,7 @@ export function Portfolio({
 
   // The page block's visible edge on each side, from how much is there. A
   // page at a time, only the stack still to read is on the screen.
-  const edge = (share: number) => (share <= 0 ? 0 : Math.max(1, Math.min(6, Math.ceil(share * 6))));
+  const edge = (share: number) => (share <= 0 ? 0 : Math.max(1, Math.min(3, Math.ceil(share * 3))));
   const turnedEdge = single ? 0 : edge(spread / leafCount);
   const unturnedEdge = single ? edge((lastPage - pos) / lastPage) : edge((leafCount - spread) / leafCount);
   const leftEdge = dir === 1 ? turnedEdge : unturnedEdge;
@@ -279,7 +280,7 @@ export function Portfolio({
   const stack = (px: number, sign: 1 | -1) =>
     px === 0
       ? "none"
-      : Array.from({ length: px }, (_, i) => `${sign * (i + 1)}px ${i + 1}px 0 ${i % 2 ? "#cbc4b4" : "#e8e4db"}`).join(", ");
+      : Array.from({ length: px }, (_, i) => `${sign * (i + 1)}px ${i + 1}px 0 ${i % 2 ? "#d6d8dc" : "#f3f3f1"}`).join(", ");
   // Which halves have any book under them.
   const leftShown = leftEdge > 0;
   const rightShown = rightEdge > 0;
@@ -332,11 +333,11 @@ export function Portfolio({
                   <span className="absolute inset-0 shadow-[0_50px_90px_-40px_rgba(10,13,24,0.6)]" />
                 </div>
                 <span
-                  className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[#efece5] transition-[box-shadow,opacity] duration-500"
+                  className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[#f6f6f4] transition-[box-shadow,opacity] duration-500"
                   style={{ boxShadow: stack(leftEdge, -1), opacity: leftShown ? 1 : 0 }}
                 />
                 <span
-                  className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[#efece5] transition-[box-shadow,opacity] duration-500"
+                  className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[#f6f6f4] transition-[box-shadow,opacity] duration-500"
                   style={{ boxShadow: stack(rightEdge, 1), opacity: rightShown ? 1 : 0 }}
                 />
 
