@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
   AreasPage,
@@ -359,9 +360,9 @@ export function Portfolio({
 
         {/* Controls ------------------------------------------------------ */}
         <div className="pbook-controls mx-auto mt-12 px-4 sm:px-0">
-          <div className="relative h-px bg-ink/15">
+          <div className="relative h-1 overflow-hidden rounded-full bg-line">
             <span
-              className="absolute inset-0 origin-left bg-survey-deep transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] rtl:origin-right"
+              className="absolute inset-0 origin-left rounded-full bg-primary transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] rtl:origin-right"
               style={{ transform: `scaleX(${progress})` }}
             />
           </div>
@@ -372,13 +373,13 @@ export function Portfolio({
               onClick={prev}
               disabled={!canPrev}
               aria-label={t("prev")}
-              className="group inline-flex min-h-12 cursor-pointer items-center gap-3 px-1 transition-colors duration-300 hover:text-survey-deep disabled:cursor-default disabled:opacity-30 disabled:hover:text-ink"
+              className="btn btn-quiet px-3 sm:px-4"
             >
-              <span aria-hidden="true" className="block h-px w-6 bg-current transition-all duration-500 group-hover:w-10 sm:w-8" />
-              <span className="label hidden sm:inline">{t("prevLabel")}</span>
+              <ChevronLeft className="size-5 rtl:rotate-180" strokeWidth={2} aria-hidden="true" />
+              <span className="hidden sm:inline">{t("prevLabel")}</span>
             </button>
 
-            <p className="label truncate text-center text-ink/60" aria-live="polite">
+            <p className="truncate text-center text-sm text-fg-muted" aria-live="polite">
               {label}
             </p>
 
@@ -387,15 +388,15 @@ export function Portfolio({
               onClick={next}
               disabled={!ready}
               aria-label={atCover || atBack ? undefined : t("next")}
-              className="group inline-flex min-h-12 cursor-pointer items-center gap-3 bg-navy px-4 py-3 text-sheet transition-colors duration-300 hover:bg-survey-deep disabled:cursor-default disabled:opacity-40 sm:gap-4 sm:px-7"
+              className="btn btn-primary px-4 sm:px-5"
             >
-              <span className="label sm:hidden">{nextShort}</span>
-              <span className="label hidden sm:inline">{nextLabel}</span>
-              <span aria-hidden="true" className="block h-px w-6 bg-giza transition-all duration-500 group-hover:w-10 sm:w-8" />
+              <span className="sm:hidden">{nextShort}</span>
+              <span className="hidden sm:inline">{nextLabel}</span>
+              <ChevronRight className="size-5 rtl:rotate-180" strokeWidth={2} aria-hidden="true" />
             </button>
           </div>
 
-          <p className="label mt-4 text-center text-ink/45">
+          <p className="mt-4 text-center text-xs text-fg-subtle">
             <span className="md:hidden">{t("hintTouch")}</span>
             <span className="hidden md:inline">{t("hintDesktop")}</span>
           </p>
@@ -414,10 +415,10 @@ export function Portfolio({
                   aria-label={t("goTo", { label: s.label })}
                   aria-current={i === spread ? "true" : undefined}
                   className={cn(
-                    "relative flex h-12 w-20 cursor-pointer items-end overflow-hidden border transition-all duration-500 sm:h-14 sm:w-24",
+                    "relative flex h-12 w-20 cursor-pointer items-end overflow-hidden rounded-md transition-all duration-300 sm:h-14 sm:w-24",
                     i === spread
-                      ? "border-survey-deep opacity-100 shadow-[0_8px_20px_-10px_rgba(10,13,24,0.6)]"
-                      : "border-ink/15 opacity-60 hover:opacity-100",
+                      ? "opacity-100 ring-2 ring-primary"
+                      : "opacity-60 ring-1 ring-ink/10 hover:opacity-100",
                   )}
                 >
                   {s.tone === "cover" && <span aria-hidden="true" className="absolute inset-0 bg-navy" />}

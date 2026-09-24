@@ -4,27 +4,27 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { X, ChevronLeft, ChevronRight, Expand } from "lucide-react";
+import { ChevronLeft, ChevronRight, Images, X } from "lucide-react";
 
-import { Frame } from "@/components/motion/Frame";
+import { Photo } from "@/components/ui/Photo";
 import { BLUR } from "@/content/photos";
+import { isOptimisable } from "@/lib/images";
 import type { GalleryImage } from "@/lib/data/types";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 /**
- * Unit gallery and lightbox.
+ * Unit photographs: a lead frame with two beside it and a strip underneath,
+ * the arrangement buyers already know from every booking site, and a
+ * full-screen viewer behind any of them.
  *
- * Buyers spend longer here than anywhere else on a listing, so this is the
- * part of the site that gets the most polish:
- *
- *   - full-screen lightbox with a filmstrip and a room label per frame
+ * The viewer:
  *   - arrow keys, Home/End and Escape; focus is trapped while open and
- *     returned to the thumbnail that opened it
- *   - drag or swipe to move between frames, with a velocity threshold so a
- *     scroll never counts as a swipe
- *   - neighbours are kept mounted so the next frame is already decoded
- *   - the page behind is locked, not just visually covered
+ *     returned to the photograph that opened it
+ *   - drag or swipe between frames, with a velocity threshold so a scroll
+ *     never counts as a swipe
+ *   - neighbours stay mounted so the next frame is already decoded
+ *   - the page behind is locked, not just covered
  */
 export function Gallery({ images }: { images: GalleryImage[] }) {
   const locale = useLocale() as Locale;
@@ -37,10 +37,7 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const count = images.length;
-  const go = useCallback(
-    (next: number) => setIndex(((next % count) + count) % count),
-    [count],
-  );
+  const go = useCallback((next: number) => setIndex(((next % count) + count) % count), [count]);
 
   const launch = (i: number, el: HTMLButtonElement) => {
     openerRef.current = el;
@@ -64,7 +61,6 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
       if (event.key === "Home") go(0);
       if (event.key === "End") go(count - 1);
       if (event.key === "Tab") {
-        // Simple trap: keep focus inside the dialog.
         const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
           'button, [href], [tabindex]:not([tabindex="-1"])',
         );
@@ -97,59 +93,116 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
   const current = images[index];
   const roomLabel = (image: GalleryImage) =>
     image.room ? t(`room.${image.room}` as "room.reception") : "";
+  const label = (image: GalleryImage, i: number) =>
+    `${roomLabel(image) || image.alt[locale]} — ${t("galleryCounter", { current: i + 1, total: count })}`;
+
+  const side = images.slice(1, 3);
+  const strip = images.slice(3, 8);
+  const hidden = count - 8;
 
   return (
     <>
-      {/* Editorial grid: a large lead frame, then pairs. Deliberately not a
-          uniform grid - the reception deserves more room than the WC. */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {images.slice(0, 5).map((image, i) => (
-          <button
-            key={image.src + i}
-            type="button"
-            onClick={(event) => launch(i, event.currentTarget)}
-            className={cn(
-              "group/shot relative block w-full overflow-hidden border border-navy-edge focus-visible:outline-offset-4",
-              i === 0 ? "aspect-[16/10] sm:col-span-2" : "aspect-[4/3]",
-            )}
-          >
-            <Frame
-              src={image.src}
-              alt={image.alt[locale]}
-              priority={i === 0}
-              sizes={i === 0 ? "(max-width: 1024px) 92vw, 60vw" : "(max-width: 1024px) 46vw, 30vw"}
-              className="absolute inset-0"
-              imageClassName="transition-transform duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/shot:scale-[1.05]"
-            />
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-3">
-              {image.room && (
-                <span className="label bg-navy/70 px-2.5 py-1.5 text-giza">
-                  {roomLabel(image)}
-                </span>
-              )}
-              {i === 0 && (
-                <span className="label flex items-center gap-2 bg-navy/70 px-2.5 py-1.5 text-sheet">
-                  <Expand className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-                  {t("galleryCounter", { current: 1, total: count })}
-                </span>
-              )}
-            </span>
-          </button>
-        ))}
+      {/* Phone: one frame and a strip to thumb through. */}
+      <div className="sm:hidden">
+        <Shot
+          image={images[0]}
+          i={0}
+          label={label(images[0], 0)}
+          onOpen={launch}
+          priority
+          sizes="100vw"
+          className="aspect-[4/3] w-full rounded-lg"
+        >
+          <span className="absolute bottom-3 end-3 inline-flex items-center gap-1.5 rounded-md bg-ink/75 px-2.5 py-1.5 text-xs font-semibold text-white">
+            <Images className="size-3.5" strokeWidth={2} aria-hidden="true" />
+            <span dir="ltr">1 / {count}</span>
+          </span>
+        </Shot>
+        {count > 1 && (
+          <div className="no-scrollbar -mx-4 mt-2 flex gap-2 overflow-x-auto px-4">
+            {images.slice(1).map((image, n) => (
+              <Shot
+                key={image.src + n}
+                image={image}
+                i={n + 1}
+                label={label(image, n + 1)}
+                onOpen={launch}
+                sizes="7rem"
+                className="h-20 w-28 shrink-0 rounded-md"
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {count > 5 && (
+      {/* Desk: the lead frame, two beside it, a strip of five below. */}
+      <div className="hidden space-y-2 sm:block">
+        <div className="grid h-[22rem] grid-cols-3 grid-rows-2 gap-2 lg:h-[26rem]">
+          <Shot
+            image={images[0]}
+            i={0}
+            label={label(images[0], 0)}
+            onOpen={launch}
+            priority
+            sizes="(max-width: 1024px) 64vw, 50rem"
+            className={cn("rounded-s-lg", side.length ? "col-span-2 row-span-2" : "col-span-3 row-span-2 rounded-e-lg")}
+          />
+          {side.map((image, n) => (
+            <Shot
+              key={image.src + n}
+              image={image}
+              i={n + 1}
+              label={label(image, n + 1)}
+              onOpen={launch}
+              sizes="(max-width: 1024px) 32vw, 25rem"
+              className={cn(
+                n === 0 && "rounded-se-lg",
+                (n === 1 || side.length === 1) && "rounded-ee-lg",
+                side.length === 1 && "row-span-2",
+              )}
+            />
+          ))}
+        </div>
+
+        {strip.length > 0 && (
+          <div className="grid h-24 grid-cols-5 gap-2 lg:h-28">
+            {strip.map((image, n) => {
+              const i = n + 3;
+              const last = n === strip.length - 1;
+              return (
+                <Shot
+                  key={image.src + i}
+                  image={image}
+                  i={i}
+                  label={label(image, i)}
+                  onOpen={launch}
+                  sizes="12rem"
+                  className="rounded-md"
+                >
+                  {last && hidden > 0 && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-ink/55 text-sm font-semibold text-white">
+                      +{hidden}
+                    </span>
+                  )}
+                </Shot>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {count > 1 && (
         <button
           type="button"
-          onClick={(event) => launch(5, event.currentTarget)}
-          className="label mt-4 inline-flex min-h-12 items-center gap-2 border border-giza-dim/50 px-5 text-sheet transition-colors duration-300 hover:border-survey hover:text-survey"
+          onClick={(event) => launch(0, event.currentTarget)}
+          className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-primary hover:underline"
         >
-          <Expand className="size-4" strokeWidth={1.75} aria-hidden="true" />
-          {t("galleryCounter", { current: count - 5, total: count })}
+          <Images className="size-4" strokeWidth={2} aria-hidden="true" />
+          {t("showAllPhotos", { count })}
         </button>
       )}
 
-      {/* Lightbox ------------------------------------------------------- */}
+      {/* The viewer --------------------------------------------------- */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -161,23 +214,23 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[120] flex flex-col bg-ink outline-none"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[120] flex flex-col bg-ink text-white outline-none"
           >
             <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
               <div className="min-w-0">
-                <p className="label truncate text-sheet">{roomLabel(current)}</p>
-                <p className="label text-giza-dim" dir="ltr">
+                <p className="truncate font-semibold">{roomLabel(current) || current.alt[locale]}</p>
+                <p className="text-sm text-white/60" dir="ltr">
                   {t("galleryCounter", { current: index + 1, total: count })}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={close}
-                className="-me-2 flex size-12 items-center justify-center text-sheet transition-colors hover:text-survey"
+                className="-me-2 flex size-11 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:outline-white"
               >
                 <span className="sr-only">{t("galleryClose")}</span>
-                <X className="size-5" strokeWidth={1.5} aria-hidden="true" />
+                <X className="size-6" strokeWidth={1.75} aria-hidden="true" />
               </button>
             </div>
 
@@ -185,11 +238,11 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.div
                   key={index}
-                  className="absolute inset-0 flex touch-pan-y items-center justify-center p-3 sm:p-8"
-                  initial={reduce ? false : { opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={reduce ? undefined : { opacity: 0, scale: 0.99 }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0 flex touch-pan-y items-center justify-center p-3 sm:px-20 sm:py-6"
+                  initial={reduce ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reduce ? undefined : { opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   drag={count > 1 ? "x" : false}
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.14}
@@ -208,6 +261,7 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
                       sizes="100vw"
                       placeholder="blur"
                       blurDataURL={BLUR}
+                      unoptimized={!isOptimisable(current.src)}
                       className="graded select-none object-contain"
                       draggable={false}
                     />
@@ -227,6 +281,7 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
                       width={40}
                       height={30}
                       sizes="100vw"
+                      unoptimized={!isOptimisable(n.src)}
                       aria-hidden="true"
                     />
                   );
@@ -241,9 +296,8 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
               )}
             </div>
 
-            {/* Filmstrip */}
             {count > 1 && (
-              <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-4 sm:px-6">
+              <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-4 sm:justify-center sm:px-6">
                 {images.map((image, i) => (
                   <button
                     key={image.src + i}
@@ -252,21 +306,11 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
                     aria-current={i === index}
                     aria-label={roomLabel(image) || image.alt[locale]}
                     className={cn(
-                      "relative h-16 w-24 shrink-0 overflow-hidden border transition-opacity duration-200",
-                      i === index
-                        ? "border-survey opacity-100"
-                        : "border-navy-edge opacity-45 hover:opacity-80",
+                      "relative h-14 w-20 shrink-0 cursor-pointer overflow-hidden rounded-md transition-opacity focus-visible:outline-white",
+                      i === index ? "opacity-100 ring-2 ring-white" : "opacity-50 hover:opacity-85",
                     )}
                   >
-                    <Image
-                      src={image.src}
-                      alt=""
-                      fill
-                      sizes="6rem"
-                      placeholder="blur"
-                      blurDataURL={BLUR}
-                      className="graded object-cover"
-                    />
+                    <Photo src={image.src} alt="" sizes="5rem" />
                   </button>
                 ))}
               </div>
@@ -275,6 +319,46 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function Shot({
+  image,
+  i,
+  label,
+  onOpen,
+  priority = false,
+  sizes,
+  className,
+  children,
+}: {
+  image: GalleryImage;
+  i: number;
+  label: string;
+  onOpen: (i: number, el: HTMLButtonElement) => void;
+  priority?: boolean;
+  sizes: string;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const locale = useLocale() as Locale;
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => onOpen(i, event.currentTarget)}
+      aria-label={label}
+      className={cn("group/shot relative block h-full w-full cursor-zoom-in overflow-hidden bg-surface-2", className)}
+    >
+      <Photo
+        src={image.src}
+        alt={image.alt[locale]}
+        sizes={sizes}
+        priority={priority}
+        className="transition-[transform,filter] duration-500 ease-out group-hover/shot:scale-[1.03] group-hover/shot:brightness-95"
+      />
+      {children}
+    </button>
   );
 }
 
@@ -293,13 +377,13 @@ function Arrow({
       type="button"
       onClick={onClick}
       className={cn(
-        "absolute top-1/2 hidden size-14 -translate-y-1/2 items-center justify-center border border-navy-edge bg-navy/60 text-sheet transition-colors hover:border-survey hover:text-survey sm:flex",
+        "absolute top-1/2 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-white sm:flex",
         side === "start" ? "start-4" : "end-4",
       )}
     >
       <span className="sr-only">{label}</span>
       {/* The chevron points along the reading direction, so it flips in Arabic. */}
-      <Icon className="size-5 rtl:rotate-180" strokeWidth={1.5} aria-hidden="true" />
+      <Icon className="size-6 rtl:rotate-180" strokeWidth={1.75} aria-hidden="true" />
     </button>
   );
 }

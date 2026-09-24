@@ -37,12 +37,12 @@ export function EnquiryForm({
 
   if (state.ok) {
     return (
-      <div className="border border-available/40 bg-available/5 p-6" role="status">
-        <p className="label flex items-center gap-2 text-available">
-          <Check className="size-4" strokeWidth={2.5} aria-hidden="true" />
+      <div className="rounded-lg border border-success/30 bg-success-soft p-5" role="status">
+        <p className="flex items-center gap-2 font-semibold text-success">
+          <Check className="size-5" strokeWidth={2.5} aria-hidden="true" />
           {t("successTitle")}
         </p>
-        <p className="measure mt-3 text-giza">{t("successBody")}</p>
+        <p className="mt-2 text-fg-muted">{t("successBody")}</p>
       </div>
     );
   }
@@ -50,7 +50,7 @@ export function EnquiryForm({
   const hasErrors = Boolean(state.fieldErrors || state.formError);
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form action={action} className="space-y-4" noValidate>
       <input type="hidden" name="startedAt" value={startedAt} />
       <input type="hidden" name="locale" value={locale} />
       {refCode && <input type="hidden" name="refCode" value={refCode} />}
@@ -69,7 +69,7 @@ export function EnquiryForm({
         className={cn("outline-none", !hasErrors && "sr-only")}
       >
         {hasErrors && (
-          <p className="border border-danger/50 bg-danger/10 px-4 py-3 text-danger">
+          <p className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
             {state.formError === "rate"
               ? t("errorGeneric")
               : state.formError
@@ -82,7 +82,7 @@ export function EnquiryForm({
       </div>
 
       {refCode && title && (
-        <p className="label text-survey" dir="ltr">
+        <p className="text-sm font-medium text-fg-muted">
           {t("aboutUnit", { ref: refCode })}
         </p>
       )}
@@ -135,12 +135,12 @@ export function EnquiryForm({
       <button
         type="submit"
         disabled={pending}
-        className="label min-h-12 w-full cursor-pointer bg-survey-deep px-6 text-sheet transition-colors duration-200 hover:bg-survey hover:text-navy disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+        className="btn btn-primary btn-lg w-full disabled:cursor-wait sm:w-auto"
       >
         {pending ? t("submitting") : t("submit")}
       </button>
 
-      <p className="text-[0.8rem] text-giza-dim">{t("consent")}</p>
+      <p className="text-xs text-fg-subtle">{t("consent")}</p>
     </form>
   );
 }
@@ -160,15 +160,11 @@ function Field({
   required?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement & HTMLTextAreaElement>) {
   const errorId = `${name}-error`;
-  const shared = cn(
-    "min-h-12 w-full border bg-navy-lift px-3.5 py-3 text-[1rem] text-sheet outline-none transition-colors duration-150",
-    "placeholder:text-giza-dim/60",
-    error ? "border-danger" : "border-navy-edge focus:border-survey",
-  );
+  const shared = "field";
 
   return (
     <div>
-      <label htmlFor={name} className="label block text-giza-dim">
+      <label htmlFor={name} className="block text-sm font-medium text-fg">
         {label}
         {required && (
           <span className="ms-1 text-danger" aria-hidden="true">
@@ -176,7 +172,7 @@ function Field({
           </span>
         )}
       </label>
-      <div className="mt-2">
+      <div className="mt-1.5">
         {textarea ? (
           <textarea
             id={name}
@@ -200,7 +196,7 @@ function Field({
         )}
       </div>
       {error && (
-        <p id={errorId} className="mt-2 text-[0.85rem] text-danger">
+        <p id={errorId} className="mt-1.5 text-sm text-danger">
           {error}
         </p>
       )}

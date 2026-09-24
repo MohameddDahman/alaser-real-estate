@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { TriangleAlert } from "lucide-react";
 
 /**
  * Errors do not apologise and are never vague about whose fault it is. This one
@@ -22,20 +23,19 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[92rem] flex-col justify-center px-4 py-32 sm:px-6 lg:px-10">
-      <h1 className="max-w-3xl text-d2 text-sheet">{t("title")}</h1>
-      <p className="measure mt-6 text-lead text-giza">{t("body")}</p>
+    <div className="shell flex min-h-[60dvh] flex-col items-start justify-center py-16">
+      <span className="flex size-14 items-center justify-center rounded-full bg-warning-soft text-warning">
+        <TriangleAlert className="size-7" strokeWidth={1.75} aria-hidden="true" />
+      </span>
+      <h1 className="mt-6 max-w-2xl text-title font-bold text-fg">{t("title")}</h1>
+      <p className="mt-3 max-w-xl text-fg-muted">{t("body")}</p>
 
-      <button
-        type="button"
-        onClick={reset}
-        className="label mt-10 inline-flex min-h-12 w-fit cursor-pointer items-center border border-giza-dim/50 px-6 text-sheet transition-colors duration-300 hover:border-survey hover:text-survey"
-      >
+      <button type="button" onClick={reset} className="btn btn-primary mt-8">
         {t("retry")}
       </button>
 
       {error.digest && (
-        <p className="mt-8 font-data text-data text-giza-dim/60" dir="ltr">
+        <p className="mt-6 text-xs text-fg-subtle tabular-nums" dir="ltr">
           {error.digest}
         </p>
       )}

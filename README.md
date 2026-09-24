@@ -32,18 +32,22 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## The design direction, in one paragraph
 
-**"المساحة / The Survey."** The native document of this business is the
-measured drawing, so the site is built out of that material: dimension strings
-instead of decorative dividers, a drawing **title block** (ref code, area,
-floor, orientation) instead of the `(01)/(02)/(03)` eyebrow every generated
-site reaches for, and a floor plan that draws itself on scroll. The navy
-`#13182c` is sampled from the client's own logo. The full plan and its
-self-critique are in [`docs/design-plan.md`](docs/design-plan.md).
+**A property marketplace, laid out the way people already know from the big
+booking sites.** A light page; the client's own navy (`#13182c`, sampled from
+their logo) for the brand bar and the hero; one blue for everything that can
+be pressed; WhatsApp in its own green, because that is where the conversation
+actually happens. The home page is a search first - sale or rent, area, type,
+budget - then browse by area, by type, and the featured listings. Results are
+wide rows with the facts in the middle and the price on the far side; a
+listing has a photo grid, a sticky price box and the measured plan. Tokens,
+buttons and fields live in `src/app/globals.css` (`.btn-*`, `.field`,
+`shell`).
 
-The one rule that governs everything: **a structural device only appears if it
-measures something true.** Room areas on the plan are computed from the
-rectangle, not typed. The north arrow points where north actually is for that
-unit. If there is no quantity, the site uses whitespace.
+The first direction ("المساحة / The Survey", in
+[`docs/design-plan.md`](docs/design-plan.md)) survives in the portfolio book
+and in one rule: **nothing is shown that is not true.** Room areas on the plan
+are computed from the rectangle, the north arrow points where north is for
+that unit, and numbers and faces render only once the client confirms them.
 
 ---
 
@@ -82,9 +86,9 @@ Built in from the first commit; it is not a retrofit.
 - **Arabic is never letterspaced and never uppercased.** Tracking breaks the
   cursive joins. The `.label` class does caps + tracking for Latin and switches
   to weight for Arabic — one class, two correct behaviours.
-- Latin display is Archivo used across its **width** axis; Arabic display is
-  **Noto Kufi Arabic**, because kufic is the architectural script and shares
-  its right angles with a floor plan.
+- The site is set in Instrument Sans and IBM Plex Sans Arabic. The portfolio
+  book keeps its own display faces: Archivo across its **width** axis, and
+  **Noto Kufi Arabic**, the architectural script.
 - Use logical properties only in shared components: `ps-*`, `pe-*`, `ms-*`,
   `me-*`, `start-*`, `end-*`, `text-start`. Never `pl-`/`pr-`/`left-`/`right-`.
 - **A floor plan never mirrors under RTL.** It is a physical object. Plan door
@@ -104,13 +108,8 @@ Floor plans are stored as **rectangles in centimetres**, not SVG path strings
 
 | Component | Where | What it does |
 |---|---|---|
-| `PlanPlate` | cards, editor preview | static, no client JS |
+| `PlanPlate` | portfolio sheets, editor preview | static, no client JS |
 | `PlanScroll` | unit page | draws on scroll |
-| `PlanStack` | home page, **once** | draws, then tilts to isometric with the floors above and below |
-
-`PlanStack` is the only 3D on the site: CSS `perspective` + `rotateX` on
-layered planes. No WebGL, no canvas. An apartment *is* one slab in a stack, and
-"third floor of nine" is the first thing a buyer asks after the price.
 
 ### The portfolio (`/portfolio`)
 
@@ -228,9 +227,9 @@ Numbers and faces render **only when `verified` is true.** An unverified
 
 ## Quality notes
 
-- Animate `transform` / `opacity` only. One reveal vocabulary site-wide
-  (`components/ui/Reveal.tsx`) — a different reveal per section is the classic
-  generated-page giveaway.
+- Animate `transform` / `opacity` only, and little of it: card hovers, the
+  filter sheet, the photo viewer, the book. Nothing waits on a scroll
+  animation before it can be read.
 - `prefers-reduced-motion`: all decorative motion off, content still arrives,
   plans render fully drawn rather than frozen mid-draw.
 - No horizontal scroll at 320px (verified).

@@ -48,7 +48,7 @@ export const kufi = Noto_Kufi_Arabic({
 /** Arabic body, on its own larger scale — see --t-* overrides in globals.css. */
 export const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-plex-ar",
   display: "swap",
 });

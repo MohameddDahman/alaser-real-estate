@@ -15,7 +15,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
       <input type="hidden" name="locale" value={locale} />
 
       <div>
-        <label htmlFor="password" className="label block text-giza-dim">
+        <label htmlFor="password" className="block text-sm font-medium text-fg">
           {t("password")}
         </label>
         <input
@@ -26,12 +26,12 @@ export function LoginForm({ locale }: { locale: Locale }) {
           autoComplete="current-password"
           aria-invalid={state.error === "wrong"}
           aria-describedby={state.error ? "login-error" : undefined}
-          className="mt-2 min-h-12 w-full border border-navy-edge bg-navy-lift px-3.5 text-[1rem] text-sheet outline-none transition-colors duration-150 focus:border-survey"
+          className="field mt-1.5"
         />
       </div>
 
       {state.error && (
-        <p id="login-error" role="alert" className="text-[0.9rem] text-danger">
+        <p id="login-error" role="alert" className="text-sm text-danger">
           {state.error === "unconfigured" ? t("notConfigured") : t("wrongPassword")}
         </p>
       )}
@@ -39,7 +39,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
       <button
         type="submit"
         disabled={pending}
-        className="label min-h-12 w-full cursor-pointer bg-survey-deep px-6 text-sheet transition-colors duration-200 hover:bg-survey hover:text-navy disabled:opacity-60"
+        className="btn btn-primary btn-lg w-full"
       >
         {t("signIn")}
       </button>

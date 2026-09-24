@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Calculator } from "lucide-react";
 
 import { formatPrice, formatNumber } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
@@ -38,24 +39,23 @@ export function InstallmentCalculator({
   const monthly = Math.round((price - down) / (years * 12));
 
   return (
-    <div className="border border-navy-edge">
-      <h3 className="label border-b border-navy-edge px-5 py-3.5 text-giza-dim">
+    <div className="rounded-lg border border-line bg-canvas p-5 shadow-card sm:p-6">
+      <h3 className="flex items-center gap-2 text-lg font-bold text-fg">
+        <Calculator className="size-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
         {t("calcTitle")}
       </h3>
 
-      <div className="space-y-6 px-5 py-6">
+      <div className="mt-5 space-y-5">
         <Row label={t("calcPrice")}>
-          <span className="font-data text-[0.95rem] text-sheet tabular-nums" dir="ltr">
-            {formatPrice(price, locale, currency)}
-          </span>
+          <span className="font-semibold text-fg tabular-nums">{formatPrice(price, locale, currency)}</span>
         </Row>
 
         <div>
           <div className="flex items-baseline justify-between gap-4">
-            <label htmlFor={`${id}-down`} className="label text-giza-dim">
+            <label htmlFor={`${id}-down`} className="text-sm text-fg-muted">
               {t("calcDown")}
             </label>
-            <span className="font-data text-data text-sheet tabular-nums" dir="ltr">
+            <span className="text-sm font-semibold text-fg tabular-nums">
               {downPct}% · {formatPrice(down, locale, currency)}
             </span>
           </div>
@@ -67,18 +67,16 @@ export function InstallmentCalculator({
             step={5}
             value={downPct}
             onChange={(e) => setDownPct(Number(e.target.value))}
-            className="mt-3 h-11 w-full cursor-pointer accent-[var(--color-survey)]"
+            className="mt-2 h-8 w-full cursor-pointer accent-[var(--color-primary)]"
           />
         </div>
 
         <div>
           <div className="flex items-baseline justify-between gap-4">
-            <label htmlFor={`${id}-years`} className="label text-giza-dim">
+            <label htmlFor={`${id}-years`} className="text-sm text-fg-muted">
               {t("calcYears")}
             </label>
-            <span className="font-data text-data text-sheet tabular-nums" dir="ltr">
-              {formatNumber(years, locale)}
-            </span>
+            <span className="text-sm font-semibold text-fg tabular-nums">{formatNumber(years, locale)}</span>
           </div>
           <input
             id={`${id}-years`}
@@ -88,23 +86,19 @@ export function InstallmentCalculator({
             step={1}
             value={years}
             onChange={(e) => setYears(Number(e.target.value))}
-            className="mt-3 h-11 w-full cursor-pointer accent-[var(--color-survey)]"
+            className="mt-2 h-8 w-full cursor-pointer accent-[var(--color-primary)]"
           />
         </div>
 
-        <div className="border-t border-navy-edge pt-5">
+        <div className="rounded-md bg-primary-soft px-4 py-3">
           <Row label={t("calcMonthly")}>
-            <span
-              className="font-data text-[1.35rem] text-survey tabular-nums"
-              dir="ltr"
-              aria-live="polite"
-            >
+            <span className="text-xl font-bold text-primary tabular-nums" aria-live="polite">
               {formatPrice(monthly, locale, currency)}
             </span>
           </Row>
         </div>
 
-        <p className="text-[0.82rem] leading-relaxed text-giza-dim">{t("calcNote")}</p>
+        <p className="text-xs leading-relaxed text-fg-subtle">{t("calcNote")}</p>
       </div>
     </div>
   );
@@ -113,7 +107,7 @@ export function InstallmentCalculator({
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="label text-giza-dim">{label}</span>
+      <span className="text-sm text-fg-muted">{label}</span>
       {children}
     </div>
   );

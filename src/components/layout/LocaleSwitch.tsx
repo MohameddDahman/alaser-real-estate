@@ -2,6 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useTransition } from "react";
+import { Globe } from "lucide-react";
+
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { localeMeta, routing, type Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -11,7 +13,13 @@ import { cn } from "@/lib/utils";
  * link-style control rather than a dropdown: there are two locales, and a menu
  * for two options is a menu too many.
  */
-export function LocaleSwitch({ className }: { className?: string }) {
+export function LocaleSwitch({
+  className,
+  withIcon = false,
+}: {
+  className?: string;
+  withIcon?: boolean;
+}) {
   const pathname = usePathname();
   const params = useParams();
   const router = useRouter();
@@ -32,17 +40,12 @@ export function LocaleSwitch({ className }: { className?: string }) {
           router.replace(`${pathname}${search}`, { locale: other });
         })
       }
-      // The label is the language you get, written in that language.
-      lang={other}
       aria-label={`Switch to ${localeMeta[other].label}`}
-      className={cn(
-        "label cursor-pointer whitespace-nowrap transition-opacity duration-200",
-        "hover:opacity-100 disabled:opacity-40",
-        "opacity-70",
-        className,
-      )}
+      className={cn("cursor-pointer whitespace-nowrap disabled:opacity-50", className)}
     >
-      {localeMeta[other].label}
+      {withIcon && <Globe className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />}
+      {/* The label is the language you get, written in that language. */}
+      <span lang={other}>{localeMeta[other].label}</span>
     </button>
   );
 }

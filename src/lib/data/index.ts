@@ -9,7 +9,7 @@ import type {
   Property,
   PropertyFilters,
 } from "./types";
-import { areas, type AreaSlug } from "@/content/client-facts";
+import { areas, propertyTypes, type AreaSlug, type PropertyTypeSlug } from "@/content/client-facts";
 import { BLUR, galleryFor, photo, PHOTOS_ARE_PLACEHOLDERS, ROOM_WORDS, type RoomKey } from "@/content/photos";
 
 /* ==========================================================================
@@ -137,13 +137,27 @@ export async function getProperties(filters: PropertyFilters = {}): Promise<Prop
   let rows = await publicRows();
 
   if (filters.q) {
+    // One box answers the ways people actually ask: "ALS-0412", "Kaabish",
+    // "Zayed", "villa" - in either language.
     const q = filters.q.trim().toLowerCase();
-    rows = rows.filter((p) =>
-      [p.title.en, p.title.ar, p.refCode, p.location.street?.en ?? "", p.location.street?.ar ?? ""]
+    rows = rows.filter((p) => {
+      const area = areas.find((a) => a.slug === p.location.area);
+      const type = propertyTypes.find((t) => t.slug === p.propertyType);
+      return [
+        p.title.en,
+        p.title.ar,
+        p.refCode,
+        p.location.street?.en ?? "",
+        p.location.street?.ar ?? "",
+        area?.name.en ?? "",
+        area?.name.ar ?? "",
+        type?.name.en ?? "",
+        type?.name.ar ?? "",
+      ]
         .join(" ")
         .toLowerCase()
-        .includes(q),
-    );
+        .includes(q);
+    });
   }
   if (filters.area?.length) rows = rows.filter((p) => filters.area!.includes(p.location.area));
   if (filters.type?.length) rows = rows.filter((p) => filters.type!.includes(p.propertyType));
@@ -212,6 +226,16 @@ export async function getRelated(property: Property, limit = 3): Promise<Propert
 export async function getAreaCounts(): Promise<Record<AreaSlug, number>> {
   const counts = Object.fromEntries(areas.map((a) => [a.slug, 0])) as Record<AreaSlug, number>;
   for (const property of await publicRows()) counts[property.location.area] += 1;
+  return counts;
+}
+
+/** Live counts per property type, for browsing by type. */
+export async function getTypeCounts(): Promise<Record<PropertyTypeSlug, number>> {
+  const counts = Object.fromEntries(propertyTypes.map((p) => [p.slug, 0])) as Record<
+    PropertyTypeSlug,
+    number
+  >;
+  for (const property of await publicRows()) counts[property.propertyType] += 1;
   return counts;
 }
 

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { MapPin, MessageCircle, Phone } from "lucide-react";
+import { ExternalLink, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import type { Locale } from "@/i18n/routing";
-import { Reveal } from "@/components/ui/Reveal";
-import { SectionHead } from "@/components/ui/DimensionRule";
+import { PageIntro } from "@/components/ui/PageIntro";
 import { EnquiryForm } from "@/components/property/EnquiryForm";
 import { contact, office, social } from "@/content/client-facts";
 import { hasVerifiedContact, telHref, waHref } from "@/lib/contact";
@@ -23,78 +22,83 @@ export default async function ContactPage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations("contact");
+  const tn = await getTranslations("nav");
+  const tp = await getTranslations("property");
   const tw = await getTranslations("whatsapp");
 
   const waLink = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
   const external = waLink.startsWith("http");
 
   return (
-    <div className="mx-auto w-full max-w-[92rem] px-4 pb-24 pt-32 sm:px-6 lg:px-10 lg:pb-32 lg:pt-40">
-      <Reveal className="text-sheet">
-        <SectionHead
-          eyebrow={t("title")}
-          title={t("metaTitle")}
-          body={t("intro")}
-          className="max-w-3xl"
-        />
-      </Reveal>
+    <>
+      <PageIntro
+        rtl={locale === "ar"}
+        crumbs={[{ label: tn("home"), href: "/" }, { label: t("title") }]}
+        title={t("metaTitle")}
+        lead={t("intro")}
+      />
 
-      <div className="mt-16 grid gap-14 lg:grid-cols-[1fr_1.3fr] lg:gap-20">
-        <Reveal>
-          <h2 className="label text-giza-dim">{t("officeTitle")}</h2>
-          <ul className="mt-5 space-y-6 border-t border-navy-edge pt-6">
-            <li className="flex gap-3.5">
-              <MapPin className="mt-1 size-4 shrink-0 text-giza-dim" strokeWidth={1.5} aria-hidden="true" />
-              <span className="text-sheet">{office.address[locale]}</span>
-            </li>
+      <div className="shell grid gap-8 py-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-12 lg:py-14">
+        <div className="space-y-4">
+          <div className="rounded-lg border border-line bg-canvas p-5 shadow-card">
+            <p className="flex items-center gap-2 font-semibold text-fg">
+              <MessageCircle className="size-5 text-whatsapp" strokeWidth={1.75} aria-hidden="true" />
+              {locale === "ar" ? "واتساب" : "WhatsApp"}
+            </p>
+            <p className="mt-1.5 text-sm text-fg-muted">{tp("agentReply")}</p>
+            <a
+              href={waLink}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noreferrer" : undefined}
+              className="btn btn-whatsapp mt-4 w-full"
+            >
+              <MessageCircle className="size-4" strokeWidth={2} aria-hidden="true" />
+              {tp("whatsappShort")}
+            </a>
+          </div>
 
-            {hasVerifiedContact && (
-              <li className="flex gap-3.5">
-                <Phone className="mt-1 size-4 shrink-0 text-giza-dim" strokeWidth={1.5} aria-hidden="true" />
-                <a
-                  href={telHref(locale)}
-                  dir="ltr"
-                  className="font-data text-data text-sheet transition-colors duration-200 hover:text-survey"
-                >
-                  {contact.phone}
-                </a>
-              </li>
-            )}
-
-            <li>
-              <a
-                href={waLink}
-                target={external ? "_blank" : undefined}
-                rel={external ? "noreferrer" : undefined}
-                className="label inline-flex min-h-12 items-center gap-2.5 bg-survey-deep px-5 text-sheet transition-colors duration-200 hover:bg-survey hover:text-navy"
-              >
-                <MessageCircle className="size-4" strokeWidth={1.75} aria-hidden="true" />
-                {locale === "ar" ? "واتساب" : "WhatsApp"}
+          {hasVerifiedContact && (
+            <div className="rounded-lg border border-line bg-canvas p-5">
+              <p className="flex items-center gap-2 font-semibold text-fg">
+                <Phone className="size-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
+                {tp("call")}
+              </p>
+              <a href={telHref(locale)} className="link mt-1.5 inline-block text-lg tabular-nums" dir="ltr">
+                {contact.phone}
               </a>
-            </li>
+            </div>
+          )}
 
-            {social.facebook && (
-              <li>
-                <a
-                  href={social.facebook}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-giza transition-colors duration-200 hover:text-sheet"
-                >
-                  Facebook
-                </a>
-              </li>
-            )}
-          </ul>
-        </Reveal>
+          <div className="rounded-lg border border-line bg-canvas p-5">
+            <p className="flex items-center gap-2 font-semibold text-fg">
+              <MapPin className="size-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
+              {t("officeTitle")}
+            </p>
+            <p className="mt-1.5 text-fg-muted">{office.address[locale]}</p>
+          </div>
 
-        <Reveal delay={0.08}>
-          <h2 className="label text-giza-dim">{t("formTitle")}</h2>
-          <div className="mt-6 border-t border-navy-edge pt-8">
+          {social.facebook && (
+            <a
+              href={social.facebook}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between gap-3 rounded-lg border border-line bg-canvas p-5 font-semibold text-fg transition-colors hover:border-primary hover:text-primary"
+            >
+              Facebook
+              <ExternalLink className="size-4" strokeWidth={2} aria-hidden="true" />
+            </a>
+          )}
+        </div>
+
+        <section aria-labelledby="form-title" className="rounded-lg border border-line bg-canvas p-5 shadow-card sm:p-8">
+          <h2 id="form-title" className="text-heading font-bold text-fg">
+            {t("formTitle")}
+          </h2>
+          <div className="mt-5 max-w-xl">
             <EnquiryForm />
           </div>
-        </Reveal>
+        </section>
       </div>
-    </div>
+    </>
   );
 }

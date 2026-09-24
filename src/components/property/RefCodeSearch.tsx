@@ -1,45 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
+import { cn } from "@/lib/utils";
 
 /**
  * Reference-code lookup. Every unit on the site carries a code like ALS-0412
  * and the client quotes it on WhatsApp and on the phone, so it is the fastest
  * way back to a unit someone half-remembers.
  */
-export function RefCodeSearch() {
+export function RefCodeSearch({ className }: { className?: string }) {
   const t = useTranslations("notFound");
   const router = useRouter();
   const [value, setValue] = useState("");
+  const id = useId();
 
   return (
     <form
+      role="search"
       onSubmit={(e) => {
         e.preventDefault();
         const q = value.trim();
         if (q) router.push(`/properties?q=${encodeURIComponent(q)}`);
       }}
-      className="flex gap-px bg-navy-edge"
+      className={cn("flex max-w-md gap-2", className)}
     >
-      <label htmlFor="refcode" className="sr-only">
+      <label htmlFor={id} className="sr-only">
         {t("searchLabel")}
       </label>
       <input
-        id="refcode"
+        id={id}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="ALS-0412"
         dir="ltr"
         autoComplete="off"
-        className="min-h-12 flex-1 bg-navy px-4 font-data text-[1rem] text-sheet tabular-nums outline-none placeholder:text-giza-dim/60 focus:bg-navy-lift"
+        className="field flex-1 tabular-nums"
       />
-      <button
-        type="submit"
-        className="label min-h-12 cursor-pointer bg-survey-deep px-5 text-sheet transition-colors duration-200 hover:bg-survey hover:text-navy"
-      >
+      <button type="submit" className="btn btn-primary">
         {t("searchAction")}
       </button>
     </form>

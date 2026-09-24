@@ -1,22 +1,19 @@
-"use client";
-
 import { useTranslations } from "next-intl";
 
 import type { PropertyStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Status is data, so it is rendered as an annotation - a coloured tick AND a
- * word, never colour alone. A colourblind visitor reads "Sold" exactly as
- * clearly as anyone else.
+ * Status is data, so it is a word as well as a colour - a colourblind visitor
+ * reads "Sold" exactly as clearly as anyone else.
  */
 const TONE: Record<PropertyStatus, string> = {
-  available: "text-available",
-  reserved: "text-reserved",
-  sold: "text-sold",
-  rented: "text-sold",
-  draft: "text-giza-dim",
-  archived: "text-giza-dim",
+  available: "bg-success-soft text-success",
+  reserved: "bg-warning-soft text-warning",
+  sold: "bg-surface-2 text-fg-muted",
+  rented: "bg-surface-2 text-fg-muted",
+  draft: "bg-surface-2 text-fg-muted",
+  archived: "bg-surface-2 text-fg-muted",
 };
 
 export function StatusBadge({
@@ -31,18 +28,12 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "label inline-flex items-center gap-2 bg-navy/60 px-2.5 py-1.5",
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold",
         TONE[status],
         className,
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "block size-1.5 shrink-0 bg-current",
-          status === "sold" || status === "rented" ? "opacity-50" : "",
-        )}
-      />
+      <span aria-hidden="true" className="block size-1.5 shrink-0 rounded-full bg-current" />
       {t(status)}
     </span>
   );

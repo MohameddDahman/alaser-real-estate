@@ -14,16 +14,11 @@ export default function GlobalNotFound() {
   return (
     <html lang={routing.defaultLocale} dir="ltr" className={fontVariables}>
       <body>
-        <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-6">
-          <p className="label text-survey">404</p>
-          <h1 className="mt-4 text-d2 text-sheet">This page is not here</h1>
-          <p className="mt-6 text-lead text-giza">
-            The link may be wrong, or the page may have moved.
-          </p>
-          <Link
-            href={`/${routing.defaultLocale}/properties`}
-            className="label mt-10 inline-flex w-fit min-h-12 items-center border border-giza-dim/50 px-6 text-sheet transition-colors duration-300 hover:border-survey hover:text-survey"
-          >
+        <div className="shell flex min-h-dvh flex-col items-start justify-center">
+          <p className="text-sm font-semibold text-fg-subtle">404</p>
+          <h1 className="mt-1 text-title font-bold text-fg">This page is not here</h1>
+          <p className="mt-3 text-fg-muted">The link may be wrong, or the page may have moved.</p>
+          <Link href={`/${routing.defaultLocale}/properties`} className="btn btn-primary mt-8">
             Browse all properties
           </Link>
         </div>

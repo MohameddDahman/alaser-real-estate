@@ -151,13 +151,11 @@ export function PropertyEditor({
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <h2 className="label text-ink/55">{t("previewTitle")}</h2>
 
-        <div className="mt-3 border border-sheet-edge bg-navy p-4">
-          <p className="label mb-3 text-giza-dim">{t("previewCard")}</p>
-
+        <p className="label mt-3 text-ink/55">{t("previewCard")}</p>
+        <div className="mt-2 overflow-hidden rounded-lg border border-line bg-canvas text-fg shadow-card">
           {/* The cover photograph, because that is what a visitor sees first.
-              The plan sits behind it and shows through only when the unit has
-              no photography at all. */}
-          <div className="relative aspect-[4/3] overflow-hidden border border-navy-edge bg-navy-lift">
+              The plan shows only when the unit has no photography at all. */}
+          <div className="relative aspect-[4/3] overflow-hidden bg-surface-2">
             {cover ? (
               <Image
                 src={cover.src}
@@ -170,39 +168,44 @@ export function PropertyEditor({
                 className="graded object-cover"
               />
             ) : plan ? (
-              <div className="absolute inset-0 p-5 text-survey/80">
+              <div className="absolute inset-0 p-5 text-navy/70">
                 <PlanPlate plan={plan} />
               </div>
             ) : null}
-            <span className="label absolute end-3 top-3 bg-navy/85 px-2 py-1 text-giza" dir="ltr">
+            <span
+              className="absolute end-3 top-3 rounded-md bg-white/95 px-2 py-1 text-xs font-semibold text-fg shadow-card tabular-nums"
+              dir="ltr"
+            >
               {property.refCode}
             </span>
           </div>
 
-          <h3
-            className="mt-4 font-display text-[1.15rem] leading-tight text-sheet"
-            lang={locale}
-            dir={locale === "ar" ? "rtl" : "ltr"}
-          >
-            {previewTitle || <span className="text-danger">— {t("fieldTitle")} —</span>}
-          </h3>
+          <div className="p-4">
+            <h3
+              className="text-base font-semibold leading-snug text-fg"
+              lang={locale}
+              dir={locale === "ar" ? "rtl" : "ltr"}
+            >
+              {previewTitle || <span className="text-danger">— {t("fieldTitle")} —</span>}
+            </h3>
 
-          <p className="mt-2 text-[0.85rem] text-giza-dim">
-            {draft.bedrooms > 0 && `${draft.bedrooms} · `}
-            <span className="font-data tabular-nums">{draft.builtUpArea}</span> m²
-          </p>
+            <p className="mt-2 text-sm text-fg-muted">
+              {draft.bedrooms > 0 && `${draft.bedrooms} · `}
+              <span className="tabular-nums">{draft.builtUpArea}</span> m²
+            </p>
 
-          <p className="mt-3 border-t border-navy-edge pt-3 font-data text-[0.9rem] text-sheet tabular-nums" dir="ltr">
-            {draft.price ? formatPrice(draft.price, locale, property.price.currency) : "—"}
-          </p>
+            <p className="mt-3 text-lg font-bold text-fg tabular-nums" dir="ltr">
+              {draft.price ? formatPrice(draft.price, locale, property.price.currency) : "—"}
+            </p>
 
-          <p
-            className="mt-4 line-clamp-4 border-t border-navy-edge pt-3 text-[0.82rem] leading-relaxed text-giza-dim"
-            lang={locale}
-            dir={locale === "ar" ? "rtl" : "ltr"}
-          >
-            {previewDesc || "—"}
-          </p>
+            <p
+              className="mt-3 line-clamp-4 border-t border-line pt-3 text-sm leading-relaxed text-fg-muted"
+              lang={locale}
+              dir={locale === "ar" ? "rtl" : "ltr"}
+            >
+              {previewDesc || "—"}
+            </p>
+          </div>
         </div>
 
       </aside>

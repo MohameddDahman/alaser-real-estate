@@ -1,11 +1,13 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { MessageCircle, Phone, MapPin } from "lucide-react";
+import { ExternalLink, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { Mark } from "@/components/brand/Mark";
 import { areas, brand, contact, office, social } from "@/content/client-facts";
 import { waHref, telHref, hasVerifiedContact } from "@/lib/contact";
 import type { Locale } from "@/i18n/routing";
+
+const PAGES = ["properties", "portfolio", "areas", "services", "about", "contact"] as const;
 
 export async function Footer() {
   const locale = (await getLocale()) as Locale;
@@ -17,106 +19,112 @@ export async function Footer() {
   const external = waLink.startsWith("http");
 
   return (
-    <footer className="bg-ink text-giza">
-      <div className="mx-auto max-w-[92rem] px-4 py-16 sm:px-6 lg:px-10 lg:py-20">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr] lg:gap-10">
-          <div>
-            <Mark className="h-9 w-auto text-sheet" />
-            <p className="mt-4 font-display text-[1rem] leading-none tracking-[0.3em] text-sheet [font-variation-settings:'wdth'_100,'wght'_500]">
-              ALASER
-            </p>
-            <p className="mt-3 max-w-[26ch] text-giza-dim">{t("tagline")}</p>
-          </div>
+    <footer className="border-t border-line bg-surface text-sm">
+      <div className="shell grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr] lg:py-14">
+        <div>
+          <Link href="/" className="inline-flex items-center gap-3 rounded-md text-navy">
+            <Mark className="h-8 w-auto" />
+            <span className="leading-none">
+              <span className="block font-display text-[1rem] tracking-[0.26em] [font-variation-settings:'wdth'_100,'wght'_600]">
+                ALASER
+              </span>
+              <span className="mt-1 block text-[0.6875rem] text-fg-muted">
+                {brand.descriptor[locale]}
+              </span>
+            </span>
+          </Link>
+          <p className="mt-4 max-w-[30ch] text-fg-muted">{t("tagline")}</p>
+        </div>
 
-          <div>
-            <h2 className="label text-sheet">{t("areas")}</h2>
-            <ul className="mt-4 space-y-2.5">
-              {areas.map((area) => (
-                <li key={area.slug}>
-                  <Link
-                    href={{ pathname: "/properties", query: { area: area.slug } }}
-                    className="text-giza-dim transition-colors duration-200 hover:text-sheet"
-                  >
-                    {area.name[locale]}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="label text-sheet">{t("company")}</h2>
-            <ul className="mt-4 space-y-2.5">
-              {(["properties", "portfolio", "areas", "services", "about", "contact"] as const).map((key) => (
-                <li key={key}>
-                  <Link
-                    href={key === "properties" ? "/properties" : `/${key}`}
-                    className="text-giza-dim transition-colors duration-200 hover:text-sheet"
-                  >
-                    {tn(key)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="label text-sheet">{t("getInTouch")}</h2>
-            <ul className="mt-4 space-y-3.5">
-              <li className="flex gap-3">
-                <MapPin className="mt-0.5 size-4 shrink-0 text-giza-dim" strokeWidth={1.5} aria-hidden="true" />
-                <span className="text-giza-dim">{office.address[locale]}</span>
-              </li>
-
-              {hasVerifiedContact && (
-                <li className="flex gap-3">
-                  <Phone className="mt-0.5 size-4 shrink-0 text-giza-dim" strokeWidth={1.5} aria-hidden="true" />
-                  <a
-                    href={telHref(locale)}
-                    dir="ltr"
-                    className="font-data text-data text-sheet transition-colors duration-200 hover:text-survey"
-                  >
-                    {contact.phone}
-                  </a>
-                </li>
-              )}
-
-              <li className="flex gap-3">
-                <MessageCircle className="mt-0.5 size-4 shrink-0 text-giza-dim" strokeWidth={1.5} aria-hidden="true" />
-                <a
-                  href={waLink}
-                  target={external ? "_blank" : undefined}
-                  rel={external ? "noreferrer" : undefined}
-                  className="text-sheet transition-colors duration-200 hover:text-survey"
+        <nav aria-labelledby="footer-areas">
+          <h2 id="footer-areas" className="font-semibold text-fg">
+            {t("areas")}
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {areas.map((area) => (
+              <li key={area.slug}>
+                <Link
+                  href={{ pathname: "/properties", query: { area: area.slug } }}
+                  className="text-fg-muted transition-colors hover:text-primary hover:underline"
                 >
-                  {locale === "ar" ? "واتساب" : "WhatsApp"}
+                  {area.name[locale]}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-labelledby="footer-company">
+          <h2 id="footer-company" className="font-semibold text-fg">
+            {t("company")}
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {PAGES.map((key) => (
+              <li key={key}>
+                <Link
+                  href={`/${key}`}
+                  className="text-fg-muted transition-colors hover:text-primary hover:underline"
+                >
+                  {tn(key)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div>
+          <h2 className="font-semibold text-fg">{t("getInTouch")}</h2>
+          <ul className="mt-3 space-y-3">
+            <li className="flex gap-2.5 text-fg-muted">
+              <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+              {office.address[locale]}
+            </li>
+            {hasVerifiedContact && (
+              <li>
+                <a
+                  href={telHref(locale)}
+                  className="inline-flex gap-2.5 text-fg-muted transition-colors hover:text-primary"
+                >
+                  <Phone className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                  <span dir="ltr" className="tabular-nums">
+                    {contact.phone}
+                  </span>
                 </a>
               </li>
-
-              {social.facebook && (
-                <li>
-                  <a
-                    href={social.facebook}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-giza-dim transition-colors duration-200 hover:text-sheet"
-                  >
-                    Facebook
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
+            )}
+            <li>
+              <a
+                href={waLink}
+                target={external ? "_blank" : undefined}
+                rel={external ? "noreferrer" : undefined}
+                className="inline-flex gap-2.5 text-fg-muted transition-colors hover:text-primary"
+              >
+                <MessageCircle className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                {locale === "ar" ? "واتساب" : "WhatsApp"}
+              </a>
+            </li>
+            {social.facebook && (
+              <li>
+                <a
+                  href={social.facebook}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex gap-2.5 text-fg-muted transition-colors hover:text-primary"
+                >
+                  <ExternalLink className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                  Facebook
+                </a>
+              </li>
+            )}
+          </ul>
         </div>
+      </div>
 
-        <div className="mt-16 flex flex-col gap-3 border-t border-navy-edge pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="label text-giza-dim">
-            {t("rights", { year: new Date().getFullYear() })}
-          </p>
-          <p className="label text-giza-dim/70">{t("builtNote")}</p>
+      <div className="border-t border-line">
+        <div className="shell flex flex-col gap-2 py-5 text-fg-subtle sm:flex-row sm:items-center sm:justify-between">
+          <p>{t("rights", { year: new Date().getFullYear() })}</p>
+          <p>{t("builtNote")}</p>
         </div>
-
-        <p className="sr-only">{brand.legalName[locale]}</p>
       </div>
     </footer>
   );

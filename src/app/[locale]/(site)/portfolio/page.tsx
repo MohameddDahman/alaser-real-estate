@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { MessageCircle } from "lucide-react";
+import { BookOpen, MessageCircle } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { Portfolio, type SpreadMeta } from "@/components/portfolio/Portfolio";
 import type { BookText, BookUnit } from "@/components/portfolio/BookPages";
 import { bookPages, layoutBook, type BookPage } from "@/components/portfolio/layout";
-import { Reveal } from "@/components/ui/Reveal";
-import { RevealText } from "@/components/motion/primitives";
+import { PageIntro } from "@/components/ui/PageIntro";
+import { Photo } from "@/components/ui/Photo";
 import { getAreaCounts, getProperties, planForProperty } from "@/lib/data";
 import { areas, brand, contact, office } from "@/content/client-facts";
 import { HERO_PHOTOS, photo } from "@/content/photos";
@@ -31,6 +31,7 @@ export default async function PortfolioPage({ params }: Props) {
   const t = await getTranslations("portfolio");
   const tp = await getTranslations("property");
   const th = await getTranslations("home");
+  const tn = await getTranslations("nav");
 
   // A sales portfolio carries what can be bought: available and reserved.
   // Sold units stay on the site for price transparency, but not in the book.
@@ -208,90 +209,80 @@ export default async function PortfolioPage({ params }: Props) {
   const external = requestLink.startsWith("http");
 
   return (
-    <div className="pb-24 pt-32 lg:pb-32 lg:pt-40">
-      <div className="mx-auto w-full max-w-[92rem] px-4 sm:px-6 lg:px-10">
-        <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <Reveal>
-              <p className="label text-survey">{t("eyebrow")}</p>
-            </Reveal>
-            <RevealText as="h1" lines={[t("title")]} className="mt-3 max-w-3xl text-d2 text-sheet" />
-            <Reveal delay={0.1}>
-              <p className="measure mt-6 text-lead text-giza">{t("lead")}</p>
-            </Reveal>
-          </div>
-          <Reveal delay={0.15}>
-            <p className="label text-giza-dim">
-              {t("unitsCount", { count: units.length, pages: pageCount })}
-            </p>
-          </Reveal>
-        </div>
-
-        <p className="label mt-10 text-giza-dim">{t("howTo")}</p>
-      </div>
+    <>
+      <PageIntro
+        rtl={locale === "ar"}
+        crumbs={[{ label: tn("home"), href: "/" }, { label: t("eyebrow") }]}
+        title={t("title")}
+        lead={t("lead")}
+      >
+        <p className="mt-4 flex items-center gap-2 text-sm font-medium text-fg">
+          <BookOpen className="size-4 shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
+          {t("unitsCount", { count: units.length, pages: pageCount })}
+        </p>
+        <p className="mt-1 text-sm text-fg-subtle">{t("howTo")}</p>
+      </PageIntro>
 
       {/* The book, on its desk ------------------------------------------ */}
-      <div className="mt-12">
-        <Portfolio
-          units={units}
-          text={text}
-          spreads={spreads}
-          pageLabels={pageLabels}
-          rtl={locale === "ar"}
-        />
-      </div>
+      <Portfolio units={units} text={text} spreads={spreads} pageLabels={pageLabels} rtl={locale === "ar"} />
 
       {/* The same volume as a list: the accessible path through it, and a
           faster index for anyone who knows which unit they want. -------- */}
-      <div className="mx-auto mt-24 w-full max-w-[92rem] px-4 sm:px-6 lg:px-10">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr] lg:gap-20">
-          <section>
-            <h2 className="label text-giza-dim">{t("contentsTitle")}</h2>
-            <ol className="mt-5 border-t border-navy-edge">
-              {listed.map((property, i) => (
+      <div className="shell grid gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12 lg:py-16">
+        <section aria-labelledby="contents-title" className="min-w-0">
+          <h2 id="contents-title" className="text-heading font-bold text-fg">
+            {t("contentsTitle")}
+          </h2>
+          <ol className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line">
+            {listed.map((property, i) => {
+              const cover = property.coverImage ?? property.gallery[0];
+              return (
                 <li key={property._id}>
                   <Link
                     href={`/properties/${property.slug}`}
-                    className="group grid grid-cols-[3.5rem_1fr_auto] items-baseline gap-4 border-b border-navy-edge py-4 transition-colors hover:bg-navy-lift/40"
+                    className="group flex items-center gap-4 p-3 transition-colors hover:bg-surface sm:p-4"
                   >
-                    <span className="font-data text-data text-survey tabular-nums" dir="ltr">
-                      {String(units[i].photoNo).padStart(3, "0")}
+                    <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-surface-2">
+                      {cover && <Photo src={cover.src} alt="" sizes="5rem" />}
                     </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sheet transition-colors group-hover:text-survey">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-fg group-hover:text-primary">
                         {property.title[locale]}
                       </span>
-                      <span className="label mt-1 block text-giza-dim">
-                        <span dir="ltr">{property.refCode}</span> ·{" "}
-                        {areas.find((a) => a.slug === property.location.area)?.name[locale]}
+                      <span className="mt-0.5 block text-sm text-fg-muted">
+                        {units[i].areaName} · <span dir="ltr">{property.refCode}</span> ·{" "}
+                        {t("sheet")} <span className="tabular-nums">{String(units[i].photoNo).padStart(3, "0")}</span>
                       </span>
                     </span>
-                    <span className="font-data text-data text-giza tabular-nums" dir="ltr">
-                      {units[i].price}
+                    <span className="hidden shrink-0 text-end font-bold text-fg tabular-nums sm:block">
+                      <span dir="ltr">{units[i].price}</span>
+                      {units[i].period && (
+                        <span className="block text-xs font-normal text-fg-subtle">{units[i].period}</span>
+                      )}
                     </span>
                   </Link>
                 </li>
-              ))}
-            </ol>
-          </section>
+              );
+            })}
+          </ol>
+        </section>
 
-          <aside className="lg:pt-10">
-            <div className="border border-navy-edge p-6">
-              <h2 className="text-d3 text-sheet">{t("requestCopy")}</h2>
-              <p className="mt-3 text-giza-dim">{t("requestCopyNote")}</p>
-              <a
-                href={requestLink}
-                target={external ? "_blank" : undefined}
-                rel={external ? "noreferrer" : undefined}
-                className="label mt-6 inline-flex min-h-12 items-center gap-2.5 bg-survey-deep px-6 text-sheet transition-colors duration-200 hover:bg-survey hover:text-navy"
-              >
-                <MessageCircle className="size-4" strokeWidth={1.75} aria-hidden="true" />
-                {t("requestCopy")}
-              </a>
-            </div>
-          </aside>
-        </div>
+        <aside className="lg:pt-12">
+          <div className="rounded-lg border border-line bg-canvas p-6 shadow-card">
+            <h2 className="text-lg font-bold text-fg">{t("requestCopy")}</h2>
+            <p className="mt-2 text-sm text-fg-muted">{t("requestCopyNote")}</p>
+            <a
+              href={requestLink}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noreferrer" : undefined}
+              className="btn btn-whatsapp mt-5 w-full"
+            >
+              <MessageCircle className="size-4" strokeWidth={2} aria-hidden="true" />
+              {t("requestCopy")}
+            </a>
+          </div>
+        </aside>
       </div>
-    </div>
+    </>
   );
 }

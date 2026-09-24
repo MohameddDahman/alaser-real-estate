@@ -45,7 +45,7 @@ export default async function AdminLayout({
           </Link>
 
           <div className="ms-auto flex items-center gap-4">
-            <LocaleSwitch className="text-ink/60 hover:text-ink" />
+            <LocaleSwitch className="label text-ink/60 transition-colors hover:text-ink" />
             <Link
               href="/"
               className="label hidden items-center gap-1.5 text-ink/60 transition-colors hover:text-ink sm:inline-flex"

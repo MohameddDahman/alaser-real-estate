@@ -5,11 +5,8 @@ import { formatDeliveryDate, formatNumber, pricePerMeter } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
 
 /**
- * The measured schedule.
- *
- * Every drawing set carries one; every row here is a quantity, not a claim.
- * Values are tabular and forced LTR so a column of areas stays a column in both
- * locales.
+ * Everything measured about the unit, as label and value. Every row is a
+ * quantity or a fact, not a claim.
  */
 export async function SpecTable({ property }: { property: Property }) {
   const locale = (await getLocale()) as Locale;
@@ -73,16 +70,14 @@ export async function SpecTable({ property }: { property: Property }) {
   const visible = rows.filter(Boolean) as Array<{ label: string; value: string }>;
 
   return (
-    <dl className="grid grid-cols-1 border-t border-navy-edge sm:grid-cols-2">
+    <dl className="grid gap-x-8 sm:grid-cols-2">
       {visible.map((row) => (
         <div
           key={row.label + row.value}
-          className="flex items-baseline justify-between gap-4 border-b border-navy-edge py-3.5 sm:odd:pe-8 sm:even:ps-8"
+          className="flex items-baseline justify-between gap-4 border-b border-line py-3 text-sm"
         >
-          <dt className="label text-giza-dim">{row.label}</dt>
-          <dd className="font-data text-data text-sheet tabular-nums" dir="ltr">
-            {row.value}
-          </dd>
+          <dt className="text-fg-muted">{row.label}</dt>
+          <dd className="text-end font-medium text-fg tabular-nums">{row.value}</dd>
         </div>
       ))}
     </dl>

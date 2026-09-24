@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Grid3x3 } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { Reveal, RevealItem, RevealList } from "@/components/ui/Reveal";
-import { SectionHead } from "@/components/ui/DimensionRule";
-import { SurveyGrid } from "@/components/home/SurveyGrid";
+import { PageIntro } from "@/components/ui/PageIntro";
+import { Photo } from "@/components/ui/Photo";
 import { areas } from "@/content/client-facts";
+import { AREA_PHOTOS, photo } from "@/content/photos";
 import { getAreaCounts } from "@/lib/data";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -24,69 +24,64 @@ export default async function AreasPage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations("areasPage");
+  const tn = await getTranslations("nav");
+  const th = await getTranslations("home");
   const counts = await getAreaCounts();
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
 
   return (
-    <div className="mx-auto w-full max-w-[92rem] px-4 pb-24 pt-32 sm:px-6 lg:px-10 lg:pb-32 lg:pt-40">
-      <Reveal className="text-sheet">
-        <SectionHead
-          eyebrow={t("title")}
-          title={t("metaTitle")}
-          body={t("intro")}
-          className="max-w-3xl"
-        />
-      </Reveal>
+    <>
+      <PageIntro
+        rtl={locale === "ar"}
+        crumbs={[{ label: tn("home"), href: "/" }, { label: t("title") }]}
+        title={t("metaTitle")}
+        lead={t("intro")}
+      />
 
-      <RevealList as="ul" className="mt-16 border-t border-navy-edge">
-        {areas.map((area) => (
-          <RevealItem as="li" key={area.slug}>
-            <Link
-              href={{ pathname: "/properties", query: { area: area.slug } }}
-              className="group relative grid gap-x-10 gap-y-4 overflow-hidden border-b border-navy-edge py-10 transition-colors duration-300 hover:bg-navy-lift/40 lg:grid-cols-[minmax(0,20rem)_1fr_auto] lg:items-start lg:py-12"
-            >
-              {/* Grid subdivisions get the grid itself, faintly, behind them.
-                  Faisal and Haram are not laid out this way, so they do not. */}
-              {"isGrid" in area && area.isGrid && (
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 end-0 hidden w-1/3 text-survey opacity-[0.10] transition-opacity duration-500 group-hover:opacity-[0.18] lg:block"
-                >
-                  <SurveyGrid />
-                </span>
-              )}
-
-              <div className="relative">
-                <h2 className="text-d3 text-sheet transition-colors duration-300 group-hover:text-survey">
-                  {area.name[locale]}
-                </h2>
-                <p className="label mt-2 text-giza-dim">{area.governorate[locale]}</p>
-              </div>
-
-              <div className="relative">
-                <p className="measure text-lead text-giza">{area.character[locale]}</p>
-                {"isGrid" in area && area.isGrid && (
-                  <p className="label mt-4 text-survey">{t("gridNote")}</p>
-                )}
-              </div>
-
-              <div className="relative flex items-center gap-4 lg:flex-col lg:items-end lg:gap-3">
-                <p className="label whitespace-nowrap text-giza">
-                  {t("unitsHere", { count: counts[area.slug] })}
-                </p>
-                <span className="label inline-flex items-center gap-2 text-survey">
-                  {t("viewUnits", { area: area.name[locale] })}
-                  <Arrow
-                    className="size-3.5 transition-transform duration-300 group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
-                    strokeWidth={1.75}
-                    aria-hidden="true"
+      <div className="shell py-10 lg:py-14">
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {areas.map((area, i) => (
+            <li key={area.slug} className="flex">
+              <article className="group relative flex w-full flex-col overflow-hidden rounded-lg border border-line bg-canvas shadow-card transition-shadow hover:shadow-raised has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-primary">
+                <div className="relative h-48 overflow-hidden bg-surface-2">
+                  <Photo
+                    src={photo(AREA_PHOTOS[area.slug], 1000)}
+                    alt=""
+                    priority={i < 3}
+                    sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 24rem"
+                    className="transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                   />
-                </span>
-              </div>
-            </Link>
-          </RevealItem>
-        ))}
-      </RevealList>
-    </div>
+                  <span className="absolute start-3 top-3 rounded-md bg-white/95 px-2 py-1 text-xs font-semibold text-fg shadow-card">
+                    {th("count", { count: counts[area.slug] })}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <h2 className="text-lg font-bold text-fg">
+                    <Link
+                      href={{ pathname: "/properties", query: { area: area.slug } }}
+                      className="after:absolute after:inset-0 focus-visible:outline-none group-hover:text-primary"
+                    >
+                      {area.name[locale]}
+                    </Link>
+                  </h2>
+                  <p className="text-sm text-fg-subtle">{area.governorate[locale]}</p>
+                  <p className="mt-3 text-sm text-fg-muted">{area.character[locale]}</p>
+                  {"isGrid" in area && area.isGrid && (
+                    <p className="mt-3 flex items-start gap-2 text-xs text-fg-muted">
+                      <Grid3x3 className="mt-0.5 size-3.5 shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
+                      {t("gridNote")}
+                    </p>
+                  )}
+                  <p className="mt-auto flex items-center gap-1.5 pt-5 text-sm font-semibold text-primary">
+                    {t("viewUnits", { area: area.name[locale] })}
+                    <Arrow className="size-4 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" strokeWidth={2} aria-hidden="true" />
+                  </p>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
   );
 }

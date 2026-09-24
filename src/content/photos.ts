@@ -29,13 +29,13 @@ export function photo(id: string, width = 1600): string {
 }
 
 /**
- * A single flat navy chip. Every photograph shares it, so the page never
- * flashes white on a dark ground while an image decodes.
+ * A single flat chip, the grey of an empty photo well. Every photograph
+ * shares it, so nothing flashes while an image decodes.
  */
 export const BLUR =
   "data:image/svg+xml;base64," +
   Buffer.from(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="6"><rect width="8" height="6" fill="#1a2138"/></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="6"><rect width="8" height="6" fill="#e6e9ef"/></svg>',
   ).toString("base64");
 
 /* -------------------------------------------------------------------------
@@ -179,18 +179,6 @@ export function galleryFor(
   out.push({ id: pick(LIB.view, s, 0), room: "view" });
   out.push({ id: pick(LIB.city, s, 3), room: "exterior" });
   return out;
-}
-
-/**
- * Day / evening pair for the hero toggle. Both frames are of the same room
- * type so the switch reads as light changing rather than a different flat.
- */
-export function dayNightFor(key: string): { day: string; night: string } {
-  const s = seedFrom(key);
-  return {
-    day: pick(LIB.living, s, 0),
-    night: pick(LIB.living, s, 11),
-  };
 }
 
 /**

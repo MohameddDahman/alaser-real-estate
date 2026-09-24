@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { SearchX } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { PropertyCard } from "@/components/property/PropertyCard";
+import { PropertyRow } from "@/components/property/PropertyCard";
 import { FiltersProvider } from "@/components/property/FiltersProvider";
-import { FilterControls, FilterSheet, SortSelect } from "@/components/property/Filters";
+import { FilterControls, FilterSheet, KeywordSearch, SortSelect } from "@/components/property/Filters";
 import { ResultsShell } from "@/components/property/ResultsShell";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { filterCache } from "@/lib/filters.server";
 import { toPropertyFilters, type RawFilters } from "@/lib/filters";
-import { getAreaCounts, getProperties, planForProperty } from "@/lib/data";
+import { getAreaCounts, getProperties } from "@/lib/data";
+import { areas } from "@/content/client-facts";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -29,59 +32,68 @@ export default async function PropertiesPage({ params, searchParams }: Props) {
 
   const parsed = (await filterCache.parse(searchParams)) as unknown as RawFilters;
   const t = await getTranslations("listings");
+  const tn = await getTranslations("nav");
 
   const [properties, counts] = await Promise.all([
     getProperties(toPropertyFilters(parsed)),
     getAreaCounts(),
   ]);
 
-  // Changes whenever the query changes, which is what re-triggers the grid's
+  // "Faisal: 3 properties found" when one area is chosen; Giza otherwise.
+  const onlyArea = parsed.area.length === 1 ? areas.find((a) => a.slug === parsed.area[0]) : null;
+  const place = onlyArea ? onlyArea.name[locale] : t("placeAll");
+
+  // Changes whenever the query changes, which is what re-triggers the list's
   // entrance so results arrive rather than snap.
   const signature = JSON.stringify(parsed);
 
   return (
     <FiltersProvider>
-      <div className="mx-auto w-full max-w-[92rem] px-4 pb-24 pt-32 sm:px-6 lg:px-10 lg:pb-32 lg:pt-40">
-        <header>
-          <p className="label text-survey">{t("title")}</p>
-          <h1 className="mt-3 text-d2 text-sheet">{t("metaTitle")}</h1>
-          <p className="measure mt-5 text-lead text-giza-dim">{t("lead")}</p>
-        </header>
+      <div className="shell pb-16 pt-5 lg:pb-24">
+        <Breadcrumbs
+          rtl={locale === "ar"}
+          items={[{ label: tn("home"), href: "/" }, { label: t("title") }]}
+        />
 
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-b border-navy-edge pb-4">
-          <p className="font-data text-data text-giza tabular-nums">
-            {t("count", { count: properties.length })}
-          </p>
-          <div className="flex items-center gap-3">
-            <FilterSheet counts={counts} resultCount={properties.length} />
-            <SortSelect />
-          </div>
+        <div className="mt-4 max-w-3xl">
+          <KeywordSearch />
         </div>
 
-        <div className="mt-10 grid gap-12 lg:grid-cols-[17rem_1fr] lg:gap-14">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-8">
           <aside className="hidden lg:block">
-            <div className="sticky top-28 max-h-[calc(100dvh-9rem)] overflow-y-auto pe-2">
+            <div className="sticky top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-line bg-canvas">
               <FilterControls counts={counts} />
             </div>
           </aside>
 
-          <section aria-label={t("title")}>
-            <ResultsShell signature={signature} count={properties.length}>
-              {properties.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-                  {properties.map((property, i) => (
-                    <PropertyCard
-                      key={property._id}
-                      property={property}
-                      plan={planForProperty(property)}
-                      priority={i < 3}
-                    />
-                  ))}
-                </div>
-              )}
-            </ResultsShell>
+          <section aria-labelledby="results-title" className="min-w-0">
+            <h1 id="results-title" className="text-title font-bold text-fg">
+              {t("resultsTitle", { place, count: properties.length })}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-fg-muted">{t("lead")}</p>
+
+            <div className="mt-4 flex items-center justify-between gap-3 border-b border-line pb-4">
+              <FilterSheet counts={counts} resultCount={properties.length} />
+              <div className="ms-auto min-w-0">
+                <SortSelect />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <ResultsShell signature={signature} count={properties.length}>
+                {properties.length === 0 ? (
+                  <EmptyState />
+                ) : (
+                  <ol className="space-y-4">
+                    {properties.map((property, i) => (
+                      <li key={property._id}>
+                        <PropertyRow property={property} priority={i < 2} />
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </ResultsShell>
+            </div>
           </section>
         </div>
       </div>
@@ -89,19 +101,17 @@ export default async function PropertiesPage({ params, searchParams }: Props) {
   );
 }
 
-/** An empty screen is an invitation to act, and it names the two filters that
+/** An empty list is an invitation to act, and it names the two filters that
  *  actually move this list rather than apologising. */
 async function EmptyState() {
   const t = await getTranslations("listings");
 
   return (
-    <div className="border border-navy-edge px-6 py-16 text-center sm:py-24">
-      <h2 className="text-d3 text-sheet">{t("emptyTitle")}</h2>
-      <p className="measure mx-auto mt-4 text-giza-dim">{t("emptyBody")}</p>
-      <Link
-        href="/properties"
-        className="label mt-8 inline-flex min-h-12 items-center border border-giza-dim/50 px-6 text-sheet transition-colors duration-300 hover:border-survey hover:text-survey"
-      >
+    <div className="rounded-lg border border-line bg-surface px-6 py-14 text-center">
+      <SearchX className="mx-auto size-10 text-fg-subtle" strokeWidth={1.5} aria-hidden="true" />
+      <h2 className="mt-4 text-heading font-bold text-fg">{t("emptyTitle")}</h2>
+      <p className="mx-auto mt-2 max-w-md text-fg-muted">{t("emptyBody")}</p>
+      <Link href="/properties" className="btn btn-outline mt-6">
         {t("emptyAction")}
       </Link>
     </div>
