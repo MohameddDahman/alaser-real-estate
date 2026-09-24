@@ -1,9 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { useFilterTransition } from "./FiltersProvider";
+import { HouseLoader } from "@/components/ui/HouseLoader";
 
 /**
  * Results fade between filter states instead of snapping, and while the
@@ -21,10 +23,20 @@ export function ResultsShell({
   count: number;
 }) {
   const { pending } = useFilterTransition();
+  const t = useTranslations("listings");
 
   if (pending) {
     return (
-      <div className="space-y-4" aria-busy="true">
+      <div className="relative space-y-4" aria-busy="true">
+        {/* Floats over the skeletons, so it moves nothing - and only a slow
+            connection ever sees it: it waits 400ms. */}
+        <p
+          role="status"
+          className="animate-appear-late absolute inset-x-0 top-10 z-10 mx-auto flex w-fit items-center gap-3 rounded-full bg-canvas px-5 py-2.5 text-sm font-medium text-fg-muted shadow-pop"
+        >
+          <HouseLoader className="h-6 text-navy" />
+          {t("updating")}
+        </p>
         {Array.from({ length: Math.max(Math.min(count, 4), 2) }).map((_, i) => (
           <Skeleton key={i} />
         ))}

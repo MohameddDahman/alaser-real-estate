@@ -93,7 +93,8 @@
     "resultsTitle": "{place}: {count, plural, =0 {لا توجد وحدات} one {وحدة واحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
     "placeAll": "الجيزة",
     "filterBy": "تصفية حسب",
-    "seeDetails": "التفاصيل"
+    "seeDetails": "التفاصيل",
+    "updating": "جارٍ تحديث القائمة…"
   },
   "property": {
     "ref": "كود",
@@ -320,7 +321,7 @@
     "builtNote": "الأسعار والإتاحة تتغير. تأكد قبل أن تتحرك."
   },
   "common": {
-    "loading": "جارٍ التحميل",
+    "loading": "جارٍ التحميل…",
     "viewUnit": "افتح الوحدة",
     "sqm": "م²",
     "egp": "جنيه",

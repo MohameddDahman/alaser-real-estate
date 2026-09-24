@@ -7,7 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Images, X } from "lucide-react";
 
 import { Photo } from "@/components/ui/Photo";
-import { BLUR } from "@/content/photos";
+import { HouseLoader } from "@/components/ui/HouseLoader";
 import { isOptimisable } from "@/lib/images";
 import type { GalleryImage } from "@/lib/data/types";
 import type { Locale } from "@/i18n/routing";
@@ -33,6 +33,8 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
 
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  /** The last viewer frame that finished loading. */
+  const [shown, setShown] = useState<string | null>(null);
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -253,15 +255,21 @@ export function Gallery({ images }: { images: GalleryImage[] }) {
                   }}
                 >
                   <div className="relative h-full w-full">
+                    {/* On a slow connection the houses hold the frame until the
+                        photograph paints over them. */}
+                    {shown !== current.src && (
+                      <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+                        <HouseLoader className="animate-appear-late h-10 text-white/60" />
+                      </span>
+                    )}
                     <Image
                       src={current.src}
                       alt={current.alt[locale]}
                       fill
                       priority
                       sizes="100vw"
-                      placeholder="blur"
-                      blurDataURL={BLUR}
                       unoptimized={!isOptimisable(current.src)}
+                      onLoad={() => setShown(current.src)}
                       className="graded select-none object-contain"
                       draggable={false}
                     />

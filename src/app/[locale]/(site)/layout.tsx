@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { NavigationLoader } from "@/components/layout/NavigationLoader";
 
 /** Public chrome. Everything a visitor sees; nothing the admin does. */
 export default async function SiteLayout({
@@ -28,6 +30,10 @@ export default async function SiteLayout({
         {children}
       </main>
       <Footer />
+      {/* Reads the search params, so it renders on the client only. */}
+      <Suspense fallback={null}>
+        <NavigationLoader />
+      </Suspense>
     </div>
   );
 }

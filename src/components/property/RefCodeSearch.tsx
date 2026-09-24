@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
+import { announceNavigation } from "@/lib/navigation-events";
 import { cn } from "@/lib/utils";
 
 /**
@@ -23,7 +24,9 @@ export function RefCodeSearch({ className }: { className?: string }) {
       onSubmit={(e) => {
         e.preventDefault();
         const q = value.trim();
-        if (q) router.push(`/properties?q=${encodeURIComponent(q)}`);
+        if (!q) return;
+        announceNavigation();
+        router.push(`/properties?q=${encodeURIComponent(q)}`);
       }}
       className={cn("flex max-w-md gap-2", className)}
     >

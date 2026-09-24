@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { Mark } from "@/components/brand/Mark";
 import { PlanPlate } from "@/components/plan/PlanPlate";
-import { BLUR } from "@/content/photos";
+import { HouseLoader } from "@/components/ui/HouseLoader";
 import { isOptimisable } from "@/lib/images";
 import type { FloorPlan } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
@@ -133,6 +133,20 @@ function Folio({ n, brand, onPhoto = false }: { n: number; brand: string; onPhot
   );
 }
 
+/**
+ * What a photograph page shows until its photograph arrives: the houses of
+ * the mark, at rest. Still on purpose - the pages are copied into the turning
+ * leaves, and nothing should animate unseen beneath a photograph while a
+ * page is in the air.
+ */
+function PhotoWell({ dark }: { dark: boolean }) {
+  return (
+    <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+      <HouseLoader still className={cn("h-[9cqw]", dark ? "text-white/25" : "text-ink/15")} />
+    </span>
+  );
+}
+
 function Heading({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <h2 className={cn("font-display text-[6.6cqw] leading-[1.04] text-navy", className)}>{children}</h2>
@@ -227,13 +241,12 @@ export function ColophonPage({ text, n }: { text: BookText; n: number }) {
 export function PlatePage({ text, n }: { text: BookText; n: number }) {
   return (
     <Page>
+      <PhotoWell dark={false} />
       <Image
         src={text.plate.src}
         alt=""
         fill
         sizes="(max-width: 768px) 90vw, 42vw"
-        placeholder="blur"
-        blurDataURL={BLUR}
         unoptimized={!isOptimisable(text.plate.src)}
         className="graded object-cover"
       />
@@ -294,14 +307,13 @@ export function ContentsPage({
 export function UnitPhotoPage({ unit, text }: { unit: BookUnit; text: BookText }) {
   return (
     <Page className="bg-navy">
+      <PhotoWell dark />
       {unit.photo && (
         <Image
           src={unit.photo.src}
           alt=""
           fill
           sizes="(max-width: 768px) 90vw, 42vw"
-          placeholder="blur"
-          blurDataURL={BLUR}
           unoptimized={!isOptimisable(unit.photo.src)}
           className="graded object-cover"
         />

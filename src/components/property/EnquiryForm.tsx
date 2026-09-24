@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 
 import { submitInquiry, type InquiryState } from "@/app/actions/inquiry";
+import { HouseLoader } from "@/components/ui/HouseLoader";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +138,7 @@ export function EnquiryForm({
         disabled={pending}
         className="btn btn-primary btn-lg w-full disabled:cursor-wait sm:w-auto"
       >
+        {pending && <HouseLoader className="h-5 text-white" />}
         {pending ? t("submitting") : t("submit")}
       </button>
 

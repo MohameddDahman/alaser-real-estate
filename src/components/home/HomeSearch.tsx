@@ -6,6 +6,7 @@ import { Building2, MapPin, Search, Wallet } from "lucide-react";
 
 import { useRouter } from "@/i18n/navigation";
 import { Select } from "@/components/ui/Select";
+import { announceNavigation } from "@/lib/navigation-events";
 import { areas, propertyTypes } from "@/content/client-facts";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ export function HomeSearch({ locale, className }: { locale: Locale; className?: 
       if (min && min !== "0") params.set("minPrice", min);
       if (max) params.set("maxPrice", max);
     }
+    announceNavigation();
     router.push(`/properties${params.size ? `?${params}` : ""}`);
   }
 
@@ -80,7 +82,7 @@ export function HomeSearch({ locale, className }: { locale: Locale; className?: 
                 setBudget("");
               }}
               className={cn(
-                "min-h-10 cursor-pointer rounded-full border px-5 text-sm font-semibold transition-colors",
+                "min-h-9 cursor-pointer rounded-full border px-4 text-sm font-semibold transition-colors md:min-h-10 md:px-5",
                 active
                   ? "border-white bg-white text-navy"
                   : "border-white/40 text-white hover:bg-white/10",
@@ -130,8 +132,8 @@ export function HomeSearch({ locale, className }: { locale: Locale; className?: 
           ]}
         />
 
-        <button type="submit" className="btn btn-primary min-h-14 rounded-lg px-8 text-base">
-          <Search className="size-5" strokeWidth={2.25} aria-hidden="true" />
+        <button type="submit" className="btn btn-primary min-h-12 rounded-lg px-8 text-[0.9375rem] md:min-h-14 md:text-base">
+          <Search className="size-[1.125rem] md:size-5" strokeWidth={2.25} aria-hidden="true" />
           {t("submit")}
         </button>
       </form>

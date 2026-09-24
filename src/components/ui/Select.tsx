@@ -202,22 +202,25 @@ export function Select({
           "flex w-full cursor-pointer items-center text-start transition-colors",
           pill
             ? "min-h-10 gap-2 rounded-full border border-line-strong bg-canvas px-3.5 text-sm font-medium text-fg hover:border-fg-subtle aria-expanded:border-primary"
-            : "min-h-14 gap-3 rounded-lg bg-canvas px-4 py-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary aria-expanded:outline-2 aria-expanded:-outline-offset-2 aria-expanded:outline-primary",
+            : "min-h-12 gap-2.5 rounded-lg bg-canvas px-3.5 md:min-h-14 md:gap-3 md:px-4 md:py-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary aria-expanded:outline-2 aria-expanded:-outline-offset-2 aria-expanded:outline-primary",
         )}
       >
         {Icon && (
           <Icon
-            className={cn("shrink-0", pill ? "size-4 text-fg-muted" : "size-5 text-fg-subtle")}
+            className={cn("shrink-0", pill ? "size-4 text-fg-muted" : "size-[1.125rem] text-fg-subtle md:size-5")}
             strokeWidth={pill ? 2 : 1.75}
             aria-hidden="true"
           />
         )}
 
         <span className="min-w-0 flex-1">
-          <span id={labelId} className={pill ? "sr-only" : "block text-xs text-fg-subtle"}>
+          <span
+            id={labelId}
+            className={pill ? "sr-only" : "sr-only md:not-sr-only md:block md:text-xs md:text-fg-subtle"}
+          >
             {label}
           </span>
-          <span className={cn("block truncate text-fg", !pill && "text-[1rem] font-medium")}>
+          <span className={cn("block truncate text-fg", !pill && "text-[0.9375rem] font-medium md:text-[1rem]")}>
             {selected?.label}
           </span>
         </span>
@@ -225,7 +228,7 @@ export function Select({
         <ChevronDown
           className={cn(
             "shrink-0 text-fg-muted transition-transform duration-200",
-            pill ? "size-4" : "size-5",
+            pill ? "size-4" : "size-4 md:size-5",
             open && "rotate-180",
           )}
           strokeWidth={2}

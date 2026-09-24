@@ -7,6 +7,7 @@ import { Globe } from "lucide-react";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { localeMeta, routing, type Locale } from "@/i18n/routing";
+import { announceNavigation } from "@/lib/navigation-events";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,14 +35,15 @@ export function LocaleSwitch({
     <button
       type="button"
       disabled={pending}
-      onClick={() =>
+      onClick={() => {
+        announceNavigation();
         startTransition(() => {
           // Keep the query string: switching language must not drop the
           // visitor's filters and land them back on an unfiltered list.
           const search = typeof window === "undefined" ? "" : window.location.search;
           router.replace(`${pathname}${search}`, { locale: other });
-        })
-      }
+        });
+      }}
       aria-label={t("switchLanguage", { language: localeMeta[other].label })}
       className={cn("cursor-pointer whitespace-nowrap disabled:opacity-50", className)}
     >

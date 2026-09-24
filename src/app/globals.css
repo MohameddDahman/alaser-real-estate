@@ -364,6 +364,35 @@
     animation: pop-in 140ms var(--ease-sheet) both;
   }
 
+  /* Loading states that only matter on a slow connection: invisible for
+     the first 400ms, so a fast load never flashes them. */
+  .animate-appear-late {
+    animation: appear 220ms ease-out 400ms both;
+  }
+
+  /* The house loader: the three houses of the mark hop in turn. The wave
+     follows the reading direction. */
+  .house-loader .house {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: house-hop 1.2s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  }
+  .house-loader .house:nth-of-type(2) {
+    animation-delay: 0.15s;
+  }
+  .house-loader .house:nth-of-type(3) {
+    animation-delay: 0.3s;
+  }
+  [dir="rtl"] .house-loader .house:nth-of-type(1) {
+    animation-delay: 0.3s;
+  }
+  [dir="rtl"] .house-loader .house:nth-of-type(3) {
+    animation-delay: 0s;
+  }
+  .house-loader--still .house {
+    animation: none;
+  }
+
   /* Eyebrow / label - the drafting voice, kept for the admin and the book.
      Latin gets caps plus tracking; Arabic gets weight. */
   .label {
@@ -455,6 +484,14 @@
 
   [data-draw] {
     stroke-dashoffset: 0 !important;
+  }
+
+  /* Loading still has to read as loading: the houses brighten in turn
+     instead of hopping. */
+  .house-loader:not(.house-loader--still) .house {
+    animation-name: house-glow !important;
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
@@ -710,5 +747,38 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes house-hop {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  22% {
+    transform: translateY(-16%);
+    opacity: 1;
+  }
+}
+
+@keyframes house-glow {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  25% {
+    opacity: 1;
   }
 }
