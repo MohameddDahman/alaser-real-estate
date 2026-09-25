@@ -34,17 +34,28 @@ export function Select({
   variant = "field",
   name,
   className,
+  triggerClassName,
+  leading,
+  disabled,
 }: {
   label: string;
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
   icon?: LucideIcon;
-  /** `field`: a search-box field, label above value. `pill`: a compact control. */
-  variant?: "field" | "pill";
+  /**
+   * `field`: a search-box field, label above value. `pill`: a compact control.
+   * `form`: a bordered form field with its label shown above it.
+   */
+  variant?: "field" | "pill" | "form";
   /** Submits the value with a surrounding form. */
   name?: string;
   className?: string;
+  /** Extra classes for the button, e.g. to colour a status. */
+  triggerClassName?: string;
+  /** Drawn before the chosen value, e.g. a status dot. */
+  leading?: React.ReactNode;
+  disabled?: boolean;
 }) {
   const id = useId();
   const labelId = `${id}-label`;
@@ -181,10 +192,17 @@ export function Select({
   }, [open, active]);
 
   const pill = variant === "pill";
+  const form = variant === "form";
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       {name && <input type="hidden" name={name} value={value} />}
+
+      {form && (
+        <span id={labelId} className="mb-1.5 block text-sm font-medium text-fg">
+          {label}
+        </span>
+      )}
 
       <button
         ref={triggerRef}
@@ -195,14 +213,20 @@ export function Select({
         aria-controls={listId}
         aria-labelledby={labelId}
         aria-activedescendant={open ? optionId(active) : undefined}
+        disabled={disabled}
         onClick={() => (open ? setOpen(false) : openAt(selectedIndex))}
         onKeyDown={onKeyDown}
         onBlur={() => setOpen(false)}
         className={cn(
-          "flex w-full cursor-pointer items-center text-start transition-colors",
-          pill
-            ? "min-h-10 gap-2 rounded-full border border-line-strong bg-canvas px-3.5 text-sm font-medium text-fg hover:border-fg-subtle aria-expanded:border-primary"
-            : "min-h-12 gap-2.5 rounded-lg bg-canvas px-3.5 md:min-h-14 md:gap-3 md:px-4 md:py-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary aria-expanded:outline-2 aria-expanded:-outline-offset-2 aria-expanded:outline-primary",
+          "flex w-full cursor-pointer items-center text-start transition-colors disabled:cursor-default disabled:opacity-60",
+          pill &&
+            "min-h-10 gap-2 rounded-full border border-line-strong bg-canvas px-3.5 text-sm font-medium text-fg hover:border-fg-subtle aria-expanded:border-primary",
+          form &&
+            "min-h-11 gap-2 rounded-md border border-line-strong bg-canvas px-3.5 text-[1rem] text-fg outline-none hover:border-fg-subtle focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_rgb(31_90_209/0.18)] aria-expanded:border-primary",
+          !pill &&
+            !form &&
+            "min-h-12 gap-2.5 rounded-lg bg-canvas px-3.5 md:min-h-14 md:gap-3 md:px-4 md:py-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary aria-expanded:outline-2 aria-expanded:-outline-offset-2 aria-expanded:outline-primary",
+          triggerClassName,
         )}
       >
         {Icon && (
@@ -212,15 +236,23 @@ export function Select({
             aria-hidden="true"
           />
         )}
+        {leading}
 
         <span className="min-w-0 flex-1">
+          {!form && (
+            <span
+              id={labelId}
+              className={pill ? "sr-only" : "sr-only md:not-sr-only md:block md:text-xs md:text-fg-subtle"}
+            >
+              {label}
+            </span>
+          )}
           <span
-            id={labelId}
-            className={pill ? "sr-only" : "sr-only md:not-sr-only md:block md:text-xs md:text-fg-subtle"}
+            className={cn(
+              "block truncate",
+              !pill && !form && "text-[0.9375rem] font-medium text-fg md:text-[1rem]",
+            )}
           >
-            {label}
-          </span>
-          <span className={cn("block truncate text-fg", !pill && "text-[0.9375rem] font-medium md:text-[1rem]")}>
             {selected?.label}
           </span>
         </span>
@@ -248,7 +280,7 @@ export function Select({
         className={cn(
           "animate-pop-in absolute z-50 max-h-72 min-w-full overflow-y-auto overscroll-contain rounded-lg border border-line bg-canvas p-1.5 shadow-pop",
           up ? "bottom-full mb-1.5 origin-bottom" : "top-full mt-1.5 origin-top",
-          pill ? "end-0 w-max max-w-[min(20rem,calc(100vw-2rem))]" : "start-0",
+          pill ? "end-0 w-max min-w-full max-w-[min(20rem,calc(100vw-2rem))]" : "start-0",
         )}
       >
         {options.map((option, i) => {

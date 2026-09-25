@@ -22,7 +22,20 @@ const FILE = `${DATA_DIR}/properties.json`;
 /** Marks everything read from the store; every write makes it stale. */
 export const STORE_TAG = "alaser-store";
 
-type Overrides = Record<string, Partial<Property>>;
+/**
+ * An edit stored over the seed. JSON cannot hold `undefined`, so a field the
+ * seed sets and the client has since cleared - a payment plan taken off - is
+ * stored as `null`, or the seed's value would show through again.
+ */
+export type Override = { [K in keyof Property]?: Property[K] | null };
+type Overrides = Record<string, Override>;
+
+/** An edit laid over what it edits, with cleared fields removed. */
+function apply(base: Partial<Property>, override: Override): Property {
+  const merged: Record<string, unknown> = { ...base, ...override };
+  for (const key of Object.keys(merged)) if (merged[key] === null) delete merged[key];
+  return merged as Property;
+}
 
 /** Straight from the store - for building a write on what is really there. */
 async function loadOverrides(): Promise<Overrides> {
@@ -56,13 +69,13 @@ async function writeOverrides(overrides: Overrides): Promise<void> {
 export async function allProperties(): Promise<Property[]> {
   const overrides = await readOverrides();
   const seeded = SEED_PROPERTIES.map((property) =>
-    overrides[property._id] ? { ...property, ...overrides[property._id] } : property,
+    overrides[property._id] ? apply(property, overrides[property._id]) : property,
   );
 
   // Anything created in admin that has no seed counterpart.
   const extra = Object.entries(overrides)
     .filter(([id]) => !SEED_PROPERTIES.some((p) => p._id === id))
-    .map(([, value]) => value as Property);
+    .map(([, value]) => apply({}, value));
 
   return [...extra, ...seeded];
 }
@@ -71,17 +84,32 @@ export async function getPropertyById(id: string): Promise<Property | null> {
   return (await allProperties()).find((p) => p._id === id) ?? null;
 }
 
-export async function updateProperty(id: string, patch: Partial<Property>): Promise<void> {
+export async function updateProperty(id: string, patch: Override): Promise<void> {
   const overrides = await loadOverrides();
   overrides[id] = { ...overrides[id], ...patch };
   await writeOverrides(overrides);
 }
 
+/** The statuses a visitor can see. */
+export const PUBLIC_STATUSES: readonly PropertyStatus[] = ["available", "reserved", "sold", "rented"];
+
+/**
+ * A unit keeps the date it first went on the site: marking it reserved or
+ * sold must not make it look newly listed, or lose its place in "newest".
+ */
+export function publishedAtFor(status: PropertyStatus, existing?: number): number | undefined {
+  return existing ?? (PUBLIC_STATUSES.includes(status) ? Date.now() : undefined);
+}
+
 export async function setStatus(id: string, status: PropertyStatus): Promise<void> {
-  await updateProperty(id, {
+  const overrides = await loadOverrides();
+  const current = await getPropertyById(id);
+  overrides[id] = {
+    ...overrides[id],
     status,
-    publishedAt: status === "available" ? Date.now() : undefined,
-  });
+    publishedAt: publishedAtFor(status, current?.publishedAt),
+  };
+  await writeOverrides(overrides);
 }
 
 export async function createProperty(property: Property): Promise<void> {
@@ -101,4 +129,14 @@ export async function nextRefCode(): Promise<string> {
     return Number.isFinite(n) && n > max ? n : max;
   }, 0);
   return `ALS-${String(highest + 1).padStart(4, "0")}`;
+}
+
+/**
+ * The code a new unit was opened with, unless someone else has taken it
+ * since - two people adding a unit at once must not end up sharing one.
+ */
+export async function freeRefCode(wanted: string): Promise<string> {
+  const rows = await allProperties();
+  if (/^ALS-\d{4,}$/.test(wanted) && !rows.some((p) => p.refCode === wanted)) return wanted;
+  return nextRefCode();
 }

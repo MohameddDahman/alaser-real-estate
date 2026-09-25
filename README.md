@@ -167,6 +167,38 @@ in admin, or swap `src`. Shot list: [`docs/shot-list.md`](docs/shot-list.md).
 
 ---
 
+## The dashboard (`/admin`)
+
+Built for daily use, mostly from a phone: a tab bar under the thumb (Home,
+Units, Leads, Settings) with the number of unanswered enquiries on Leads, and
+the same light look as the public site.
+
+- **Home** - new leads, available, reserved and draft counts (each opens the
+  matching list), the latest enquiries with Call and WhatsApp buttons, and
+  what on the site needs fixing.
+- **Units** - instant search by code, title or area (Arabic spelling
+  variants and digits fold together), status filters with counts, and a
+  status change on every row without opening the unit. "Add a unit" is
+  always in reach.
+- **The unit editor** (`components/admin/UnitEditor.tsx`) - adding and
+  editing are one screen with every field: status, sale or rent, type,
+  area, tenure, price and payment plan, photos, size and rooms, both
+  languages, street, features, home-page feature. One Save button, pinned to
+  the bottom, saves everything, photos included, and always says whether
+  anything is unsaved; leaving with unsaved changes asks first. A status
+  visitors can see needs both languages and a price - the checklist under
+  the status says what is missing, and the server refuses it too. Numbers
+  typed on an Arabic keyboard count. It only ever works on a unit's own
+  photos; stand-ins are shown, never saved.
+- **Leads** - opens on the enquiries nobody has answered. Each has Call,
+  WhatsApp (the reply already names the unit, in the visitor's language) and
+  a status: new, contacted, viewing booked, deal done, not interested.
+- **Settings** - language, the site and signing out (the phone header has
+  no room for them), the business details and what is still needed from
+  the client.
+
+---
+
 ## Storage
 
 The dashboard keeps its data in the **Vercel Blob store the project already
@@ -179,7 +211,9 @@ uses for photographs** — no database, no extra account to create
   Nothing is overwritten in place, so no read can see a stale or half-written
   version.
 - **Enquiries** are one file each, so two sent in the same second can never
-  overwrite each other.
+  overwrite each other. An enquiry is never rewritten: where the client has
+  got to with it (contacted, viewing booked, deal done, not interested) is a
+  separate small document of statuses by enquiry id.
 - **Everything is encrypted** (AES-256-GCM) before it is stored. The store is
   public — it serves the listing photographs — so a file's address alone must
   never reveal a customer's phone number. Files also sit under a folder name
@@ -187,6 +221,9 @@ uses for photographs** — no database, no extra account to create
   their own, so a preview never touches real leads.
 - The public pages read listings through Next's data cache; the store is only
   asked again after an edit (every write revalidates the `alaser-store` tag).
+  The dashboard reads enquiries and their statuses the same way
+  (`alaser-leads`, `alaser-lead-status`), so opening it all day costs no
+  storage operations until something actually changes.
 
 | Variable | Needed for |
 |---|---|
@@ -209,7 +246,7 @@ model — with `src/lib/data/store.ts` and `inquiries.ts` as the swap points.
 ## Before launch
 
 Everything outstanding is tracked in one place: `OPEN_QUESTIONS` in
-`src/content/client-facts.ts`, rendered on `/admin` and `/admin/settings`.
+`src/content/client-facts.ts`, rendered on `/admin/settings`.
 
 **Blocking:**
 
@@ -284,12 +321,13 @@ asks for, in the browser:
 The client will be uploading 6MB photos from a phone on Egyptian mobile data;
 this sends roughly a tenth of that.
 
-**The cover is the first frame.** "Set as cover" lifts a photo to the top
-rather than setting a separate flag — one concept to explain instead of two.
+**The cover is the first frame.** The star lifts a photo to the front rather
+than setting a separate flag — one concept to explain instead of two. Photos
+are saved with the rest of the unit by the editor's one Save button.
 
-**Alt text is never empty.** Leave it blank and the server writes it from the
-room and the unit in both languages. Change the room and an auto-written alt
-is rewritten to match; one the client typed themselves is left alone.
+**Alt text is never empty.** The server writes it from the room and the unit
+in both languages. Change the room and an auto-written alt is rewritten to
+match; one written by hand earlier is left alone.
 
 Images from hosts that are not in `next.config` render unoptimised rather than
 as a broken box — see `src/lib/images.ts`. Opening the optimiser to `**` would

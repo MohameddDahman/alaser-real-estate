@@ -11,9 +11,19 @@ import {
   isAuthed,
   verifyPassword,
 } from "@/lib/admin-auth";
-import { getPropertyById, setStatus, updateProperty } from "@/lib/data/store";
+import { LEAD_STATUSES, setLeadStatus, type LeadStatus } from "@/lib/data/inquiries";
+import {
+  PUBLIC_STATUSES,
+  createProperty,
+  freeRefCode,
+  getPropertyById,
+  publishedAtFor,
+  setStatus,
+  updateProperty,
+} from "@/lib/data/store";
 import type { Property, PropertyStatus } from "@/lib/data/types";
-import { missingBilingualFields, normaliseGallery } from "@/lib/data/validation";
+import { UNIT_STATUSES, readUnitForm, unitSlug } from "@/lib/data/unit-form";
+import { missingForSite, type SiteRequirement } from "@/lib/data/validation";
 import { clearMisses, isLockedOut, recordMiss } from "@/lib/login-throttle";
 
 /**
@@ -72,106 +82,95 @@ export async function signOut(formData: FormData): Promise<void> {
 }
 
 /**
- * Status change from the list view, without opening the record - the brief
- * calls this out specifically, because "mark it sold" is the single most
- * frequent thing the client will do.
+ * Status change from the list, without opening the unit - "mark it sold" is
+ * the thing the client does most, usually on a phone. A status visitors can
+ * see is refused while the unit is incomplete, and the answer says what is
+ * missing so the list can say it too.
  */
-export async function changeStatus(formData: FormData): Promise<void> {
+export type StatusResult = { ok?: boolean; blocked?: SiteRequirement[] };
+
+export async function changeStatus(formData: FormData): Promise<StatusResult> {
   await assertAuthed();
 
   const id = String(formData.get("id"));
   const status = String(formData.get("status")) as PropertyStatus;
+  const unit = await getPropertyById(id);
+  if (!unit || !UNIT_STATUSES.includes(status)) return {};
+
+  if (PUBLIC_STATUSES.includes(status)) {
+    const missing = missingForSite(unit);
+    if (missing.length > 0) return { blocked: missing };
+  }
+
   await setStatus(id, status);
   refreshSite();
-}
-
-export type SaveState = { ok?: boolean; blocked?: string[]; error?: string };
-
-export async function saveProperty(
-  _prev: SaveState,
-  formData: FormData,
-): Promise<SaveState> {
-  await assertAuthed();
-
-  const id = String(formData.get("id"));
-  const existing = await getPropertyById(id);
-  if (!existing) return { error: "not-found" };
-
-  const patch: Partial<Property> = {
-    title: {
-      en: String(formData.get("title.en") ?? "").trim(),
-      ar: String(formData.get("title.ar") ?? "").trim(),
-    },
-    description: {
-      en: String(formData.get("description.en") ?? "").trim(),
-      ar: String(formData.get("description.ar") ?? "").trim(),
-    },
-    specs: {
-      ...existing.specs,
-      builtUpArea: Number(formData.get("builtUpArea")) || existing.specs.builtUpArea,
-      bedrooms: Number(formData.get("bedrooms")) || 0,
-      bathrooms: Number(formData.get("bathrooms")) || 0,
-    },
-    price: {
-      ...existing.price,
-      amount: Number(formData.get("price")) || existing.price.amount,
-    },
-  };
-
-  const intent = String(formData.get("intent") ?? "save");
-  const next = { ...existing, ...patch } as Property;
-
-  if (intent === "publish") {
-    const missing = missingBilingualFields(next);
-    if (missing.length > 0) return { blocked: missing };
-    patch.status = "available";
-    patch.publishedAt = Date.now();
-  }
-  if (intent === "unpublish") patch.status = "draft";
-  if (intent === "archive") patch.status = "archived";
-
-  await updateProperty(id, patch);
-  refreshSite();
-
   return { ok: true };
 }
 
-export type GalleryState = { ok?: boolean; error?: "not-found" | "bad-payload"; count?: number };
+export type SaveState = {
+  ok?: boolean;
+  savedAt?: number;
+  blocked?: SiteRequirement[];
+  error?: "not-found";
+};
 
 /**
- * Persist a unit's photographs: order, cover, room labels and alt text.
+ * Save a unit - everything on the editor, photographs included, in one go.
  *
- * The first frame is always the cover, so "set cover" is just a move to the
- * top - one concept for the client instead of two. Validation and alt-text
- * generation happen in `normaliseGallery` on the server, so nothing the
- * browser sends can store a broken or unlabelled image.
+ * Without an id it creates the unit: it keeps the reference code the editor
+ * was opened with unless someone took it meanwhile, and lands on the new
+ * unit's own page.
  */
-export async function saveGallery(
-  _prev: GalleryState,
-  formData: FormData,
-): Promise<GalleryState> {
+export async function saveUnit(_prev: SaveState, formData: FormData): Promise<SaveState> {
   await assertAuthed();
 
-  const id = String(formData.get("id"));
-  const existing = await getPropertyById(id);
-  if (!existing) return { error: "not-found" };
+  const id = String(formData.get("id") ?? "");
+  const existing = id ? await getPropertyById(id) : null;
+  if (id && !existing) return { error: "not-found" };
 
-  let drafts: unknown;
-  try {
-    drafts = JSON.parse(String(formData.get("gallery") ?? "[]"));
-  } catch {
-    return { error: "bad-payload" };
+  const refCode = existing?.refCode ?? (await freeRefCode(String(formData.get("refCode") ?? "")));
+  const fields = readUnitForm(formData, existing, refCode);
+
+  if (PUBLIC_STATUSES.includes(fields.status)) {
+    const missing = missingForSite(fields);
+    if (missing.length > 0) return { blocked: missing };
   }
-  if (!Array.isArray(drafts)) return { error: "bad-payload" };
+  const publishedAt = publishedAtFor(fields.status, existing?.publishedAt);
 
-  const gallery = normaliseGallery(drafts, {
-    titleEn: existing.title.en,
-    titleAr: existing.title.ar,
-    refCode: existing.refCode,
-  });
+  if (existing) {
+    // A plan or cover taken off is stored as cleared, not merely left out.
+    await updateProperty(existing._id, {
+      ...fields,
+      paymentPlan: fields.paymentPlan ?? null,
+      coverImage: fields.coverImage ?? null,
+      publishedAt,
+    });
+    refreshSite();
+    return { ok: true, savedAt: Date.now() };
+  }
 
-  await updateProperty(id, { gallery, coverImage: gallery[0] });
+  const unit: Property = {
+    ...fields,
+    _id: `p_${refCode.replace(/\D/g, "")}`,
+    refCode,
+    slug: unitSlug(fields, refCode),
+    floorPlans: [],
+    views: 0,
+    publishedAt,
+  };
+  await createProperty(unit);
   refreshSite();
+  redirect(`/${String(formData.get("locale") ?? "en")}/admin/properties/${unit._id}?created=1`);
+}
 
-  return { ok: true, count: gallery.length };
+/** Where the client has got to with an enquiry: called, viewing booked, won, lost. */
+export async function changeLeadStatus(formData: FormData): Promise<{ ok?: boolean }> {
+  await assertAuthed();
+
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "") as LeadStatus;
+  if (!id || !LEAD_STATUSES.includes(status)) return {};
+
+  await setLeadStatus(id, status);
+  return { ok: true };
 }

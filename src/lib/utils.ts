@@ -58,13 +58,29 @@ export function formatDeliveryDate(value: string, locale: Locale) {
  * important conversion path on the site.
  */
 export function whatsappLink(phone: string, text: string) {
-  const digits = phone.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${internationalDigits(phone)}?text=${encodeURIComponent(text)}`;
+}
+
+/**
+ * wa.me only understands the full international number, but visitors type
+ * their mobile the local way: 010..., or 10... without the zero. Both become
+ * 2010...; anything already international is left alone.
+ */
+export function internationalDigits(phone: string) {
+  const digits = toLatinDigits(phone).replace(/\D/g, "");
+  if (/^01[0125]\d{8}$/.test(digits)) return `2${digits}`;
+  if (/^1[0125]\d{8}$/.test(digits)) return `20${digits}`;
+  return digits;
+}
+
+/** Arabic-Indic and Persian digits as 0-9, so a number typed on an Arabic keyboard still counts. */
+export function toLatinDigits(value: string) {
+  return value.replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
 }
 
 /** Egyptian mobile: 010, 011, 012, 015, eleven digits. */
 export function isEgyptianMobile(value: string) {
-  return /^(?:\+?20|0)?1[0125]\d{8}$/.test(value.replace(/[\s-]/g, ""));
+  return /^(?:\+?20|0)?1[0125]\d{8}$/.test(toLatinDigits(value).replace(/[\s-]/g, ""));
 }
 
 export function slugify(value: string) {

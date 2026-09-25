@@ -2,24 +2,34 @@ import type { GalleryImage, Property } from "./types";
 import { BLUR, ROOM_KEYS, ROOM_WORDS, type RoomKey } from "@/content/photos";
 import { isValidImageSrc } from "@/lib/images";
 
+export const SITE_REQUIREMENTS = [
+  "titleEn",
+  "titleAr",
+  "descriptionEn",
+  "descriptionAr",
+  "price",
+] as const;
+export type SiteRequirement = (typeof SITE_REQUIREMENTS)[number];
+
 /**
- * Which bilingual fields are still empty.
- *
- * Publishing is blocked on this list and the admin names the missing fields
- * rather than just refusing - a half-translated listing shows an Arabic
- * visitor an empty page, and that is the failure mode this client will
- * actually hit.
+ * What a unit still needs before visitors can see it: both languages, and a
+ * price or "on request". The editor shows this as a checklist while the
+ * client types, and the server refuses a visible status until it is empty -
+ * a half-translated listing shows an Arabic visitor an empty page, which is
+ * the failure this client would actually hit.
  *
  * Lives here rather than in the server-actions module because a `"use server"`
- * file may only export async functions, and this is a plain predicate that the
- * editor and the dashboard both want to call.
+ * file may only export async functions, and the editor calls it too.
  */
-export function missingBilingualFields(property: Property): string[] {
-  const missing: string[] = [];
-  if (!property.title.en.trim() || !property.title.ar.trim()) missing.push("title");
-  if (!property.description.en.trim() || !property.description.ar.trim()) {
-    missing.push("description");
-  }
+export function missingForSite(
+  unit: Pick<Property, "title" | "description" | "price">,
+): SiteRequirement[] {
+  const missing: SiteRequirement[] = [];
+  if (!unit.title.en.trim()) missing.push("titleEn");
+  if (!unit.title.ar.trim()) missing.push("titleAr");
+  if (!unit.description.en.trim()) missing.push("descriptionEn");
+  if (!unit.description.ar.trim()) missing.push("descriptionAr");
+  if (!unit.price.onRequest && !unit.price.amount) missing.push("price");
   return missing;
 }
 

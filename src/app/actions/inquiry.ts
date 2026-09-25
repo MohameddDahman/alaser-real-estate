@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 
 import { saveInquiry } from "@/lib/data/inquiries";
-import { isEgyptianMobile } from "@/lib/utils";
+import { isEgyptianMobile, toLatinDigits } from "@/lib/utils";
 
 /**
  * Public enquiry submission.
@@ -60,7 +60,8 @@ export async function submitInquiry(
   }
 
   const name = String(formData.get("name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  // Stored with Latin digits, so the tel: and WhatsApp links work whatever keyboard typed it.
+  const phone = toLatinDigits(String(formData.get("phone") ?? "")).trim();
   const email = String(formData.get("email") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
   const propertyRefCode = String(formData.get("refCode") ?? "").trim();
