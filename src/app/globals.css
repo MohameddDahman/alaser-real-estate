@@ -574,10 +574,8 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    cursor: grab;
-  }
-  .pbook:active {
-    cursor: grabbing;
+    /* The plain arrow: the corner peeling up to meet it is the cue. */
+    cursor: default;
   }
 
   /* Each slot is its own stacking context, so the shading layered inside a
