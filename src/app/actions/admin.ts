@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -13,6 +14,7 @@ import {
 import { getPropertyById, setStatus, updateProperty } from "@/lib/data/store";
 import type { Property, PropertyStatus } from "@/lib/data/types";
 import { missingBilingualFields, normaliseGallery } from "@/lib/data/validation";
+import { clearMisses, isLockedOut, recordMiss } from "@/lib/login-throttle";
 
 /**
  * Every admin mutation passes through `assertAuthed` first.
@@ -43,14 +45,23 @@ function refreshSite(): void {
   revalidatePath("/", "layout");
 }
 
-export type SignInState = { error?: "wrong" | "unconfigured" };
+export type SignInState = { error?: "wrong" | "unconfigured" | "rate" };
 
 export async function signIn(_prev: SignInState, formData: FormData): Promise<SignInState> {
   if (!isAdminConfigured()) return { error: "unconfigured" };
 
-  const password = String(formData.get("password") ?? "");
-  if (!verifyPassword(password)) return { error: "wrong" };
+  const ip = ((await headers()).get("x-forwarded-for") ?? "local").split(",")[0].trim();
+  if (isLockedOut(ip)) return { error: "rate" };
 
+  const password = String(formData.get("password") ?? "");
+  if (!verifyPassword(password)) {
+    recordMiss(ip);
+    // Every wrong password costs a moment, so a script cannot rattle through a list.
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return { error: isLockedOut(ip) ? "rate" : "wrong" };
+  }
+
+  clearMisses(ip);
   await createSession();
   redirect(`/${String(formData.get("locale") ?? "en")}/admin`);
 }

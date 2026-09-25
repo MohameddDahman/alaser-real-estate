@@ -32,7 +32,11 @@ export function LoginForm({ locale }: { locale: Locale }) {
 
       {state.error && (
         <p id="login-error" role="alert" className="text-sm text-danger">
-          {state.error === "unconfigured" ? t("notConfigured") : t("wrongPassword")}
+          {state.error === "unconfigured"
+            ? t("notConfigured")
+            : state.error === "rate"
+              ? t("tooManyTries")
+              : t("wrongPassword")}
         </p>
       )}
 
