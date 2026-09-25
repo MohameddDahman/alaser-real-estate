@@ -1,19 +1,16 @@
 import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
-import { DATA_DIR } from "./data-dir";
+import { DATA_DIR, IS_EPHEMERAL_STORE } from "./data-dir";
+import { BLOB_STORE_ENABLED, appendRecord, readRecords } from "./blob-store";
 import type { Inquiry } from "./types";
 
 /**
- * Lead storage - the second swap point for Convex.
+ * Lead storage.
  *
- * Until the client's Convex account exists this writes to a local JSON file so
- * nothing is lost during development and the admin inbox has something to
- * render. It is NOT durable on serverless, which is why the WhatsApp deep-link
- * - not this form - is the primary conversion path on every listing.
- *
- * When Convex is wired, `saveInquiry` becomes a single `mutation` call and
- * `listInquiries` a `query`. Nothing else changes.
+ * Deployed, each enquiry is its own sealed file in the project's Blob store
+ * (see blob-store.ts): durable, and two enquiries sent at once can never
+ * overwrite each other. In development it is a JSON file in .data/.
  */
 
 const FILE = `${DATA_DIR}/inquiries.json`;
@@ -41,32 +38,35 @@ export async function saveInquiry(inquiry: Inquiry): Promise<StoredInquiry> {
     createdAt: Date.now(),
   };
   /**
-   * Log every lead before persisting it.
-   *
-   * On serverless the JSON store lives in the instance's temp directory, so a
-   * lead written by one instance is invisible to the instance that later
-   * renders the admin inbox. The visitor is told "Sent" either way, so the
-   * lead must not be recoverable ONLY from that file - this line puts it in
-   * the platform's runtime logs as well, where it can always be retrieved.
-   *
-   * This is a safety net for the interim store, not a lead pipeline. Convex
-   * removes the need for it.
+   * The visitor is told "Sent" whatever happens next, so a lead must never
+   * exist only in a store that may not keep it. Where the store is only a
+   * serverless instance's temp directory, or the write fails, the whole
+   * record goes to the runtime logs, where it can always be recovered.
+   * Otherwise the logs carry no phone numbers.
    */
-  console.info("[lead]", JSON.stringify(row));
+  const durable = BLOB_STORE_ENABLED || !IS_EPHEMERAL_STORE;
+  if (!durable) console.info("[lead]", JSON.stringify(row));
 
   try {
-    rows.unshift(row);
-    await mkdir(DATA_DIR, { recursive: true });
-    await writeFile(FILE, JSON.stringify(rows, null, 2), "utf8");
+    if (BLOB_STORE_ENABLED) {
+      await appendRecord("inquiries", row);
+    } else {
+      rows.unshift(row);
+      await mkdir(DATA_DIR, { recursive: true });
+      await writeFile(FILE, JSON.stringify(rows, null, 2), "utf8");
+    }
+    if (durable) console.info("[lead] saved", row._id);
   } catch (error) {
-    // A failed write must never turn into an error for the visitor: the lead
-    // is already logged above, and losing the enquiry is the only real failure.
-    console.error("[lead] persist failed", error);
+    // A failed write must never turn into an error for the visitor; losing
+    // the enquiry is the only real failure, so the record goes to the logs.
+    console.error("[lead] persist failed", durable ? JSON.stringify(row) : "", error);
   }
 
   return row;
 }
 
+/** Newest first. */
 export async function listInquiries(): Promise<StoredInquiry[]> {
-  return readAll();
+  const rows = BLOB_STORE_ENABLED ? await readRecords<StoredInquiry>("inquiries") : await readAll();
+  return rows.sort((a, b) => b.createdAt - a.createdAt);
 }

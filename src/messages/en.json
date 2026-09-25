@@ -421,7 +421,7 @@
     "settingsIntro": "These values come from src/content/client-facts.ts. Anything unconfirmed is listed below.",
     "confirmed": "Confirmed",
     "unconfirmed": "Not confirmed yet",
-    "leadsEphemeral": "This preview deployment stores leads in temporary storage, so this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connecting Convex makes this list permanent.",
+    "leadsEphemeral": "This deployment has no Blob store connected, so leads are kept in temporary storage: this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connect the project’s Blob store in Vercel to make this list permanent.",
     "previewPhotos": "Photographs, in the order they appear",
     "photosArePlaceholder": "Placeholder photography. Replaced by real shoots of this unit before launch.",
     "photosTitle": "Photographs",

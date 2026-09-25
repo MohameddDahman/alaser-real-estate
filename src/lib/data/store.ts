@@ -1,29 +1,32 @@
 import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 import { DATA_DIR } from "./data-dir";
+import { BLOB_STORE_ENABLED, readDocument, writeDocument } from "./blob-store";
 import { SEED_PROPERTIES } from "./seed";
 import type { Property, PropertyStatus } from "./types";
 
 /**
  * Effective inventory = seed content + whatever the client has edited in admin.
  *
- * This is the third and last Convex swap point. Today it merges a local JSON
- * file over the seed so the admin is genuinely usable - the client can change a
- * status, fix Arabic copy, publish a draft, and see it on the public site
- * immediately. That matters because the brief says to hand the dashboard over
- * early and watch them use it; a read-only mock teaches nothing.
- *
- * When Convex is wired: `allProperties` becomes a query, `updateProperty` and
- * `createProperty` become mutations with the authorisation checks moved inside
- * them, and this file is deleted.
+ * The edits are one document of overrides merged over the seed, so the admin
+ * is genuinely usable - the client can change a status, fix Arabic copy,
+ * publish a draft, and see it on the public site immediately. Deployed, the
+ * document lives in the project's Blob store (see blob-store.ts) and survives
+ * every restart and redeploy; in development it is a JSON file in .data/.
  */
 
 const FILE = `${DATA_DIR}/properties.json`;
 
+/** Marks everything read from the store; every write makes it stale. */
+export const STORE_TAG = "alaser-store";
+
 type Overrides = Record<string, Partial<Property>>;
 
-async function readOverrides(): Promise<Overrides> {
+/** Straight from the store - for building a write on what is really there. */
+async function loadOverrides(): Promise<Overrides> {
+  if (BLOB_STORE_ENABLED) return (await readDocument<Overrides>("properties")) ?? {};
   try {
     return JSON.parse(await readFile(FILE, "utf8")) as Overrides;
   } catch {
@@ -31,9 +34,22 @@ async function readOverrides(): Promise<Overrides> {
   }
 }
 
+/**
+ * Through Next's data cache: the public pages ask for the inventory on
+ * every render, and the store is only asked again after something changes.
+ */
+const readOverrides = unstable_cache(loadOverrides, ["alaser-store-properties"], {
+  tags: [STORE_TAG],
+});
+
 async function writeOverrides(overrides: Overrides): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(FILE, JSON.stringify(overrides, null, 2), "utf8");
+  if (BLOB_STORE_ENABLED) {
+    await writeDocument("properties", overrides);
+  } else {
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(FILE, JSON.stringify(overrides, null, 2), "utf8");
+  }
+  revalidateTag(STORE_TAG);
 }
 
 /** Every property the system knows about, including drafts and archived. */
@@ -56,7 +72,7 @@ export async function getPropertyById(id: string): Promise<Property | null> {
 }
 
 export async function updateProperty(id: string, patch: Partial<Property>): Promise<void> {
-  const overrides = await readOverrides();
+  const overrides = await loadOverrides();
   overrides[id] = { ...overrides[id], ...patch };
   await writeOverrides(overrides);
 }
@@ -69,7 +85,7 @@ export async function setStatus(id: string, status: PropertyStatus): Promise<voi
 }
 
 export async function createProperty(property: Property): Promise<void> {
-  const overrides = await readOverrides();
+  const overrides = await loadOverrides();
   overrides[property._id] = property;
   await writeOverrides(overrides);
 }

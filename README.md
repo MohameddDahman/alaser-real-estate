@@ -4,8 +4,8 @@ Bilingual (AR/EN) marketing site and private dashboard for a real estate
 marketing company in Giza, Egypt.
 
 **Stack:** Next.js 15 (App Router) · TypeScript · Tailwind v4 · Motion ·
-next-intl · nuqs · Convex *(schema written, not yet wired — see
-[Wiring Convex](#wiring-convex))*
+next-intl · nuqs · Vercel Blob for storage *(no database account needed —
+see [Storage](#storage))*
 
 ---
 
@@ -69,10 +69,10 @@ src/
     property/  home/  portfolio/  layout/  admin/  ui/  brand/
   content/client-facts.ts SINGLE SOURCE OF TRUTH for everything about the business
   lib/
-    data/                 the Convex swap points
+    data/                 the read layer, and the Blob-backed store
     plan-geometry.ts      pure geometry, no React
   messages/{en,ar}.json   all copy
-convex/schema.ts          the real data model, ready to deploy
+convex/schema.ts          the data model, kept for an optional move to Convex
 ```
 
 ### Bilingual + RTL
@@ -167,43 +167,42 @@ in admin, or swap `src`. Shot list: [`docs/shot-list.md`](docs/shot-list.md).
 
 ---
 
-## Wiring Convex
+## Storage
 
-Deliberately deferred — the client's account does not exist yet. Three files
-are the entire swap:
+The dashboard keeps its data in the **Vercel Blob store the project already
+uses for photographs** — no database, no extra account to create
+(`src/lib/data/blob-store.ts`). It is durable across restarts and redeploys.
 
-| File | Becomes |
+- **Edits made in admin** (status, copy, prices, photographs, new units) are
+  one document of overrides merged over the seed. Every save is a new,
+  immutable file; the newest is current and the last ten are kept as history.
+  Nothing is overwritten in place, so no read can see a stale or half-written
+  version.
+- **Enquiries** are one file each, so two sent in the same second can never
+  overwrite each other.
+- **Everything is encrypted** (AES-256-GCM) before it is stored. The store is
+  public — it serves the listing photographs — so a file's address alone must
+  never reveal a customer's phone number. Files also sit under a folder name
+  derived from the secret, and production and preview deployments each have
+  their own, so a preview never touches real leads.
+- The public pages read listings through Next's data cache; the store is only
+  asked again after an edit (every write revalidates the `alaser-store` tag).
+
+| Variable | Needed for |
 |---|---|
-| `src/lib/data/index.ts` | `fetchQuery` / `preloadQuery` calls. Return types already match. |
-| `src/lib/data/store.ts` | mutations; **delete the file** |
-| `src/lib/data/inquiries.ts` | one mutation + one query; **delete the file** |
-| `src/app/api/admin/upload/route.ts` | Convex upload URLs in place of Blob tokens |
+| `BLOB_READ_WRITE_TOKEN` | The store. Set automatically when the Blob store is connected to the project. |
+| `ADMIN_SESSION_SECRET` | Also derives the encryption key. **Changing it makes stored data unreadable** — to rotate sessions, first set `DATA_SECRET` to its current value. |
+| `DATA_SECRET` *(optional)* | Takes over as the encryption key when set. |
+| `ALASER_STORE=blob` *(optional, local)* | Development uses `.data/*.json` (gitignored — leads contain phone numbers) so it can never write to live data; set this to use the Blob store locally instead. |
 
-```bash
-npx convex dev          # generates convex/_generated from the committed schema
-```
+A deployment with no Blob store connected falls back to the function's temp
+directory, which does not survive a cold start; the Leads page says so in an
+amber notice when that is the case.
 
-Then, in order:
-
-1. Move the authorisation checks in `src/app/actions/admin.ts` **inside** the
-   Convex mutations. Middleware protects routes; server functions protect data.
-2. Replace `src/lib/admin-auth.ts` with Better Auth + the Convex adapter and
-   the `owner` / `agent` / `viewer` roles. **This file is an interim gate** —
-   one shared password, signed cookie. It is documented as such at the top of
-   the file and is the first thing the Convex step removes.
-3. Move the in-memory rate limiter in `src/app/actions/inquiry.ts` into Convex.
-4. Seed: `SEED_PROPERTIES` in `src/lib/data/seed.ts` maps 1:1 onto the
-   `properties` table.
-
-Until then, admin edits and leads persist to a JSON store (`src/lib/data/data-dir.ts`):
-
-- **locally** → `.data/*.json`, gitignored because leads contain phone numbers
-- **on Vercel** → `os.tmpdir()`, because a serverless filesystem is read-only
-  everywhere else. Writes succeed and the deployed preview is fully usable, but
-  the data is per-instance and **does not survive a cold start or a redeploy.**
-
-That is why **WhatsApp, not the form, is the primary CTA on every listing** —
-and why wiring Convex is the next task, not a nice-to-have.
+**Later, if wanted:** a private Blob store (Storage → Create → Blob →
+Private in the Vercel dashboard) needs only `access: "private"` in
+`blob-store.ts`. Convex remains possible too — `convex/schema.ts` is the data
+model — with `src/lib/data/store.ts` and `inquiries.ts` as the swap points.
 
 ---
 

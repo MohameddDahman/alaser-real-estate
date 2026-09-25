@@ -36,7 +36,6 @@ export async function generateMetadata({
       locale: locale === "ar" ? "ar_EG" : "en_EG",
       siteName: brand.legalName[locale as Locale],
     },
-    icons: { icon: "/favicon.ico" },
   };
 }
 
