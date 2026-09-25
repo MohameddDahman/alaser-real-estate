@@ -31,6 +31,7 @@ export async function generateMetadata({
       process.env.NEXT_PUBLIC_SITE_URL ?? "https://alaser.eg",
     ),
     alternates: { languages: { en: "/en", ar: "/ar" } },
+    other: { google: "notranslate" },
     openGraph: {
       type: "website",
       locale: locale === "ar" ? "ar_EG" : "en_EG",
@@ -59,7 +60,15 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   return (
-    <html lang={locale} dir={localeMeta[locale].dir} className={fontVariables} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={localeMeta[locale].dir}
+      // The site is written in both languages; a browser's machine translation
+      // of one into the other is worse than either (see LanguageOffer).
+      translate="no"
+      className={fontVariables}
+      suppressHydrationWarning
+    >
       <body>
         <NextIntlClientProvider>
           <NuqsAdapter>{children}</NuqsAdapter>
