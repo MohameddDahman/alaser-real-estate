@@ -64,7 +64,8 @@ export default async function LocaleLayout({
       lang={locale}
       dir={localeMeta[locale].dir}
       // The site is written in both languages; a browser's machine translation
-      // of one into the other is worse than either (see LanguageOffer).
+      // of one into the other is worse than either - Chrome turned "Haram"
+      // into "حرام". The header's language button is the way across.
       translate="no"
       className={fontVariables}
       suppressHydrationWarning

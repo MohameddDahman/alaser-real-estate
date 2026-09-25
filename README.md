@@ -93,10 +93,8 @@ Built in from the first commit; it is not a retrofit.
   `me-*`, `start-*`, `end-*`, `text-start`. Never `pl-`/`pr-`/`left-`/`right-`.
 - **No machine translation.** `<html translate="no">` and the `google:
   notranslate` meta keep Chrome from translating one language into the other
-  (it turned "Haram" into "حرام", "forbidden"). Instead, a visitor whose
-  browser's first language differs from the page's gets the site's own
-  offer (`LanguageOffer`), written in the language it offers, until they
-  pick a language themselves.
+  (it turned "Haram" into "حرام", "forbidden"). The header's language button
+  is the way across.
 - **A floor plan never mirrors under RTL.** It is a physical object. Plan door
   edges are named `left`/`right`, not `start`/`end`, to make that impossible to
   get wrong by accident.

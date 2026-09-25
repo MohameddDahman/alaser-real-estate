@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Header } from "@/components/layout/Header";
-import { LanguageOffer } from "@/components/layout/LanguageOffer";
 import { Footer } from "@/components/layout/Footer";
 import { NavigationLoader } from "@/components/layout/NavigationLoader";
 
@@ -26,7 +25,6 @@ export default async function SiteLayout({
       >
         {t("skipToContent")}
       </a>
-      <LanguageOffer />
       <Header />
       <main id="main" tabIndex={-1} className="flex-1 outline-none">
         {children}
