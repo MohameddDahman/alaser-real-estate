@@ -23,6 +23,7 @@ import {
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { Logo } from "@/components/brand/Mark";
 import { HomeSearch } from "@/components/home/HomeSearch";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { RefCodeSearch } from "@/components/property/RefCodeSearch";
@@ -82,7 +83,8 @@ export default async function HomePage({
       <section className="relative">
         <div aria-hidden="true" className="absolute inset-x-0 top-0 bottom-9 bg-navy" />
         <div className="shell relative pt-6 sm:pt-10">
-          <h1 className="max-w-3xl text-display font-bold text-white">{t("heroTitle")}</h1>
+          <Logo locale={locale} className="text-white" />
+          <h1 className="mt-6 max-w-3xl text-display font-bold text-white sm:mt-8">{t("heroTitle")}</h1>
           <p className="mt-3 max-w-2xl text-white/80 sm:text-lg">{t("heroSub")}</p>
           <HomeSearch locale={locale} className="mt-7 sm:mt-9" />
         </div>

@@ -1,3 +1,6 @@
+import { brand } from "@/content/client-facts";
+import { cn } from "@/lib/utils";
+
 /**
  * The Alaser mark, redrawn as vector from the client's existing logo: three
  * pitched roofs, the centre one taller, with a chimney and punched windows.
@@ -47,25 +50,35 @@ export function Mark({ className }: { className?: string }) {
   );
 }
 
-/** Mark plus wordmark, as it is locked up in their logo. */
-export function Logo({
-  className,
-  withDescriptor = true,
-}: {
-  className?: string;
-  withDescriptor?: boolean;
-}) {
+/**
+ * The logo as the home page opens on it: the mark, then the wordmark set as
+ * in their logo, and the company's name in the visitor's language beneath -
+ * the first thing a visitor sees is whose site this is.
+ *
+ * Colour is currentColor, so it sits white on the navy hero.
+ */
+export function Logo({ locale, className }: { locale: "en" | "ar"; className?: string }) {
   return (
-    <span className={className}>
-      <Mark className="h-7 w-auto" />
-      <span className="mt-1.5 block font-display text-[0.95rem] leading-none tracking-[0.34em] [font-variation-settings:'wdth'_100,'wght'_500]">
-        ALASER
-      </span>
-      {withDescriptor && (
-        <span className="mt-1 block font-data text-[0.5rem] leading-none tracking-[0.22em] text-giza-dim uppercase">
-          Real Estate Marketing
+    <div className={cn("flex items-center gap-4 sm:gap-5", className)}>
+      <Mark className="h-12 w-auto shrink-0 sm:h-14" />
+      <span aria-hidden="true" className="h-11 w-px shrink-0 bg-current opacity-30 sm:h-12" />
+      <p className="min-w-0 leading-none">
+        <span className="block">
+          {/* Tracking leaves a space after the last letter; the negative end
+              margin takes it back, so the word lines up with the name below
+              in either direction. */}
+          <span
+            lang="en"
+            dir="ltr"
+            className="-me-[0.28em] inline-block font-display text-[1.5rem] tracking-[0.28em] [font-variation-settings:'wdth'_100,'wght'_600] sm:text-[1.75rem]"
+          >
+            {brand.latin}
+          </span>
         </span>
-      )}
-    </span>
+        <span className="mt-2 block text-[0.9375rem] font-medium opacity-80 sm:text-base">
+          {locale === "ar" ? `${brand.arabic} ${brand.descriptor.ar}` : brand.descriptor.en}
+        </span>
+      </p>
+    </div>
   );
 }
