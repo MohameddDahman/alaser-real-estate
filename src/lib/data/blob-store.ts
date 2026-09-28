@@ -116,6 +116,23 @@ export async function writeDocument(name: string, value: unknown): Promise<void>
   if (stale.length) await del(stale).catch(() => undefined);
 }
 
+/**
+ * Delete uploaded files for good - photographs the client has deleted from
+ * Deleted items. Only files in this project's store are touched, and only
+ * where the store is in use: a development copy never deletes live photos.
+ */
+export async function deleteFiles(urls: string[]): Promise<void> {
+  if (!BLOB_STORE_ENABLED) return;
+  const ours = urls.filter((url) => {
+    try {
+      return new URL(url).hostname.endsWith(".public.blob.vercel-storage.com");
+    } catch {
+      return false;
+    }
+  });
+  if (ours.length > 0) await del(ours);
+}
+
 /** Add one record to a collection. It is never rewritten. */
 export async function appendRecord(name: string, value: unknown): Promise<void> {
   await write(`${folder(name)}${stamp()}.bin`, value);

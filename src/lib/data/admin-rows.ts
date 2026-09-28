@@ -30,6 +30,54 @@ export type UnitRow = {
   missing: SiteRequirement[];
 };
 
+/** A unit waiting in Deleted items. */
+export type DeletedUnitRow = {
+  id: string;
+  refCode: string;
+  title: I18nText;
+  cover?: string;
+  deletedAt?: number;
+  restoreStatus?: PropertyStatus;
+};
+
+/** A photograph taken off its unit, waiting in Deleted items. */
+export type DeletedPhotoRow = {
+  unitId: string;
+  refCode: string;
+  unitTitle: I18nText;
+  src: string;
+  blurDataURL?: string;
+  removedAt: number;
+};
+
+export function deletedItems(units: Property[]): { units: DeletedUnitRow[]; photos: DeletedPhotoRow[] } {
+  return {
+    units: units
+      .filter((unit) => unit.status === "archived")
+      .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
+      .map((unit) => ({
+        id: unit._id,
+        refCode: unit.refCode,
+        title: unit.title,
+        cover: attachPhotos(unit).gallery[0]?.src,
+        deletedAt: unit.deletedAt,
+        restoreStatus: unit.restoreStatus,
+      })),
+    photos: units
+      .flatMap((unit) =>
+        (unit.removedPhotos ?? []).map((photo) => ({
+          unitId: unit._id,
+          refCode: unit.refCode,
+          unitTitle: unit.title,
+          src: photo.src,
+          blurDataURL: photo.blurDataURL,
+          removedAt: photo.removedAt,
+        })),
+      )
+      .sort((a, b) => b.removedAt - a.removedAt),
+  };
+}
+
 export function toUnitRow(unit: Property): UnitRow {
   const shown = attachPhotos(unit);
   return {

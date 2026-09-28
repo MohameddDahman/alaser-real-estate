@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { office } from "@/content/client-facts";
 import { waHref } from "@/lib/contact";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -35,7 +36,7 @@ export default async function ServicesPage({ params }: Props) {
   const t = await getTranslations("services");
   const tn = await getTranslations("nav");
   const tw = await getTranslations("whatsapp");
-  const waLink = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
+  const waLink = waHref(await getBusinessDetails(), tw("templateGeneral", { area: office.city[locale] }), locale);
   const external = waLink.startsWith("http");
 
   return (

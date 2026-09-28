@@ -26,6 +26,8 @@ export default async function AdminPropertyEditPage({
 
   return (
     <UnitEditor
+      // Deleting or restoring starts the editor afresh from what is stored.
+      key={unit.status === "archived" ? "deleted" : "live"}
       unit={unit}
       refCode={unit.refCode}
       standInCover={standInCover}

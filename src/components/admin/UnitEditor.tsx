@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useLocale, useMessages, useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -12,9 +12,10 @@ import {
   ExternalLink,
   Plus,
   Trash2,
+  Undo2,
 } from "lucide-react";
 
-import { saveUnit, type SaveState } from "@/app/actions/admin";
+import { deleteUnit, restoreUnit, saveUnit, type SaveState } from "@/app/actions/admin";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { areas, propertyTypes, tenures } from "@/content/client-facts";
@@ -27,7 +28,7 @@ import { Select } from "@/components/ui/Select";
 import { Card } from "./ui";
 import { ChipChoice, Field, NumberInput, Segmented, Stepper, Toggle } from "./form-controls";
 import { PhotoSection, type PhotoDraft } from "./PhotoSection";
-import { Dot, StatusBadge, UNIT_STATUS_ORDER, UNIT_TONE } from "./status";
+import { Dot, StatusBadge, UNIT_STATUS_CHOICES, UNIT_TONE } from "./status";
 
 /**
  * The unit editor - adding a unit and changing one are the same screen.
@@ -205,6 +206,8 @@ export function UnitEditor({
   const snapshot = JSON.stringify(draft);
   const dirty = snapshot !== baseline;
   const isNew = !unit;
+  const isDeleted = unit?.status === "archived";
+  const [trashPending, startTrash] = useTransition();
 
   // A save that went through makes what was sent the new "saved".
   useEffect(() => {
@@ -281,6 +284,28 @@ export function UnitEditor({
         )}
       </div>
 
+      {isDeleted && (
+        <div role="status" className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm">
+          <Trash2 className="size-4 shrink-0 text-warning" strokeWidth={2} aria-hidden="true" />
+          <p className="min-w-0 flex-1 font-medium text-fg">{t("unitIsDeleted")}</p>
+          <button
+            type="button"
+            disabled={trashPending}
+            onClick={() => {
+              const data = new FormData();
+              data.set("id", unit!._id);
+              startTrash(async () => {
+                await restoreUnit(data);
+              });
+            }}
+            className="btn btn-primary btn-sm"
+          >
+            <Undo2 className="size-4 rtl:-scale-x-100" strokeWidth={2} aria-hidden="true" />
+            {t("restore")}
+          </button>
+        </div>
+      )}
+
       <form
         action={formAction}
         // "Go" on a phone keyboard must not save half a form.
@@ -315,7 +340,7 @@ export function UnitEditor({
             <fieldset>
               <legend className="sr-only">{t("fieldStatus")}</legend>
               <div className="flex flex-wrap gap-2">
-                {UNIT_STATUS_ORDER.map((status) => (
+                {UNIT_STATUS_CHOICES.map((status) => (
                   <ChipChoice
                     key={status}
                     type="radio"
@@ -779,6 +804,35 @@ export function UnitEditor({
               onChange={(value) => set("featured", value)}
             />
           </Card>
+
+          {/* Delete - to Deleted items, where it can be restored. -------- */}
+          {unit && !isDeleted && (
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[0.9375rem] font-semibold text-fg">{t("deleteUnitTitle")}</p>
+                  <p className="mt-0.5 text-sm text-fg-muted">{t("deleteUnitHint")}</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={trashPending}
+                  onClick={() => {
+                    if (!window.confirm(t("confirmDeleteUnit", { ref: refCode }))) return;
+                    const data = new FormData();
+                    data.set("id", unit._id);
+                    data.set("locale", locale);
+                    startTrash(async () => {
+                      await deleteUnit(data);
+                    });
+                  }}
+                  className="btn btn-quiet btn-sm shrink-0 text-danger hover:border-danger hover:bg-danger/5"
+                >
+                  <Trash2 className="size-4" strokeWidth={2} aria-hidden="true" />
+                  {t("deleteUnit")}
+                </button>
+              </div>
+            </Card>
+          )}
 
           {/* Save ------------------------------------------------------ */}
           <div

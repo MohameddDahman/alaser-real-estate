@@ -7,8 +7,9 @@ import { BookOpen, Building2, Handshake, Info, MapPin, MessageCircle, Phone } fr
 import { Link, usePathname } from "@/i18n/navigation";
 import { Mark } from "@/components/brand/Mark";
 import { LocaleSwitch } from "./LocaleSwitch";
-import { brand, contact, office } from "@/content/client-facts";
+import { brand, office } from "@/content/client-facts";
 import { hasVerifiedContact, telHref, waHref } from "@/lib/contact";
+import { useDetails } from "./DetailsProvider";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
 
@@ -35,8 +36,9 @@ export function Header() {
   const tw = useTranslations("whatsapp");
   const pathname = usePathname();
   const locale = (useParams().locale as Locale) ?? "en";
+  const details = useDetails();
 
-  const wa = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
+  const wa = waHref(details, tw("templateGeneral", { area: office.city[locale] }), locale);
   const external = wa.startsWith("http");
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -69,12 +71,12 @@ export function Header() {
 
           {hasVerifiedContact && (
             <a
-              href={telHref(locale)}
+              href={telHref(details, locale)}
               className="hidden min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors hover:bg-white/10 md:inline-flex"
             >
               <Phone className="size-4" strokeWidth={1.75} aria-hidden="true" />
               <span dir="ltr" className="tabular-nums">
-                {contact.phone}
+                {details.phone}
               </span>
             </a>
           )}

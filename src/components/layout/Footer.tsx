@@ -3,8 +3,9 @@ import { ExternalLink, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { Mark } from "@/components/brand/Mark";
-import { areas, brand, contact, office, social } from "@/content/client-facts";
-import { waHref, telHref, hasVerifiedContact } from "@/lib/contact";
+import { areas, brand, office } from "@/content/client-facts";
+import { hasVerifiedContact, linkName, telHref, waHref } from "@/lib/contact";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 import type { Locale } from "@/i18n/routing";
 
 const PAGES = ["properties", "portfolio", "areas", "services", "about", "contact"] as const;
@@ -14,8 +15,9 @@ export async function Footer() {
   const t = await getTranslations("footer");
   const tn = await getTranslations("nav");
   const tw = await getTranslations("whatsapp");
+  const details = await getBusinessDetails();
 
-  const waLink = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
+  const waLink = waHref(details, tw("templateGeneral", { area: office.city[locale] }), locale);
   const external = waLink.startsWith("http");
 
   return (
@@ -75,19 +77,34 @@ export async function Footer() {
         <div>
           <h2 className="font-semibold text-fg">{t("getInTouch")}</h2>
           <ul className="mt-3 space-y-3">
-            <li className="flex gap-2.5 text-fg-muted">
-              <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-              {office.address[locale]}
+            <li>
+              {/* With a map pin saved, the address opens it. */}
+              {details.mapUrl ? (
+                <a
+                  href={details.mapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex gap-2.5 text-fg-muted transition-colors hover:text-primary"
+                >
+                  <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                  {details.address[locale]}
+                </a>
+              ) : (
+                <span className="flex gap-2.5 text-fg-muted">
+                  <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                  {details.address[locale]}
+                </span>
+              )}
             </li>
             {hasVerifiedContact && (
               <li>
                 <a
-                  href={telHref(locale)}
+                  href={telHref(details, locale)}
                   className="inline-flex gap-2.5 text-fg-muted transition-colors hover:text-primary"
                 >
                   <Phone className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
                   <span dir="ltr" className="tabular-nums">
-                    {contact.phone}
+                    {details.phone}
                   </span>
                 </a>
               </li>
@@ -103,19 +120,19 @@ export async function Footer() {
                 {locale === "ar" ? "واتساب" : "WhatsApp"}
               </a>
             </li>
-            {social.facebook && (
-              <li>
+            {details.links.map((link) => (
+              <li key={link.url}>
                 <a
-                  href={social.facebook}
+                  href={link.url}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex gap-2.5 text-fg-muted transition-colors hover:text-primary"
                 >
                   <ExternalLink className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                  Facebook
+                  <span dir="auto">{linkName(link)}</span>
                 </a>
               </li>
-            )}
+            ))}
           </ul>
         </div>
       </div>

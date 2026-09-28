@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
-import { AlertTriangle, ImageOff, Pencil, Plus } from "lucide-react";
+import { AlertTriangle, ImageOff, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
+
+import { restoreUnit } from "@/app/actions/admin";
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -15,7 +17,7 @@ import { matchesSearch } from "@/lib/search-text";
 import { formatPrice } from "@/lib/utils";
 import { EmptyState, PageHeader } from "./ui";
 import { FilterChips, SearchBox } from "./FilterBar";
-import { UNIT_STATUS_ORDER, UNIT_TONE } from "./status";
+import { UNIT_STATUS_CHOICES, UNIT_TONE } from "./status";
 import { UnitStatusControl } from "./UnitStatusControl";
 import { UnitThumb } from "./UnitThumb";
 
@@ -23,24 +25,36 @@ type Filter = "all" | PropertyStatus;
 
 /**
  * Every unit, found in a keystroke: search by code, title or area, filter by
- * status, and change a status without opening anything. "All" leaves the
- * archive out - that is what the Archived filter is for.
+ * status, and change a status without opening anything. Deleted units are
+ * not here - they wait in Deleted items, one tap away from the header, and
+ * a unit just deleted can be brought straight back from the notice.
  *
  * The search and filter live in the address, so the dashboard's counts can
  * link straight to "Reserved" and the back button returns to the same list.
  */
-export function UnitList({ units }: { units: UnitRow[] }) {
+export function UnitList({
+  units,
+  deletedCount,
+  justDeleted,
+}: {
+  units: UnitRow[];
+  deletedCount: number;
+  /** The unit the editor has just deleted, to offer an undo. */
+  justDeleted?: { id: string; ref: string };
+}) {
   const t = useTranslations("admin");
   const ts = useTranslations("property.status");
   const locale = useLocale() as Locale;
 
   const [param, setFilterParam] = useQueryState("status", parseAsString.withDefault("all"));
-  const filter: Filter = UNIT_STATUS_ORDER.includes(param as PropertyStatus) ? (param as PropertyStatus) : "all";
+  const filter: Filter = UNIT_STATUS_CHOICES.includes(param as PropertyStatus) ? (param as PropertyStatus) : "all";
   const [query, setQuery] = useQueryState("q", parseAsString.withDefault(""));
+  const [, setDeletedParam] = useQueryState("deleted");
   // A unit whose status was just changed stays in view until the filter
   // changes, so it does not vanish from under the thumb that changed it.
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [blocked, setBlocked] = useState<{ unit: UnitRow; missing: SiteRequirement[] } | null>(null);
+  const [undoing, startUndo] = useTransition();
 
   const setFilter = (value: Filter) => {
     setTouched(new Set());
@@ -48,15 +62,13 @@ export function UnitList({ units }: { units: UnitRow[] }) {
   };
 
   const counts = useMemo(() => {
-    const byStatus = Object.fromEntries(UNIT_STATUS_ORDER.map((s) => [s, 0])) as Record<PropertyStatus, number>;
-    for (const unit of units) byStatus[unit.status]++;
+    const byStatus = Object.fromEntries(UNIT_STATUS_CHOICES.map((s) => [s, 0])) as Record<PropertyStatus, number>;
+    for (const unit of units) byStatus[unit.status] = (byStatus[unit.status] ?? 0) + 1;
     return byStatus;
   }, [units]);
 
   const shown = units.filter((unit) => {
-    const inFilter =
-      touched.has(unit.id) ||
-      (filter === "all" ? unit.status !== "archived" : unit.status === filter);
+    const inFilter = touched.has(unit.id) || filter === "all" || unit.status === filter;
     if (!inFilter) return false;
     const area = areas.find((a) => a.slug === unit.area);
     const type = propertyTypes.find((p) => p.slug === unit.propertyType);
@@ -72,12 +84,53 @@ export function UnitList({ units }: { units: UnitRow[] }) {
         title={t("propertiesTitle")}
         subtitle={t("unitsCount", { count: units.length })}
         action={
-          <Link href="/admin/properties/new" className="btn btn-primary hidden sm:inline-flex">
-            <Plus className="size-4" strokeWidth={2.25} aria-hidden="true" />
-            {t("newProperty")}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/deleted" className="btn btn-quiet btn-sm">
+              <Trash2 className="size-4" strokeWidth={2} aria-hidden="true" />
+              {t("navDeleted")}
+              {deletedCount > 0 && (
+                <span className="rounded-full bg-surface-2 px-1.5 text-xs font-semibold leading-5 text-fg-muted tabular-nums">
+                  {deletedCount}
+                </span>
+              )}
+            </Link>
+            <Link href="/admin/properties/new" className="btn btn-primary hidden sm:inline-flex">
+              <Plus className="size-4" strokeWidth={2.25} aria-hidden="true" />
+              {t("newProperty")}
+            </Link>
+          </div>
         }
       />
+
+      {justDeleted && (
+        <div role="status" className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-canvas p-3 shadow-card sm:p-4">
+          <Trash2 className="size-4 shrink-0 text-fg-muted" strokeWidth={2} aria-hidden="true" />
+          <p className="min-w-0 flex-1 text-sm font-medium text-fg">
+            {t("unitMovedToDeleted", { ref: justDeleted.ref })}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={undoing}
+              onClick={() => {
+                const data = new FormData();
+                data.set("id", justDeleted.id);
+                startUndo(async () => {
+                  await restoreUnit(data);
+                  await setDeletedParam(null);
+                });
+              }}
+              className="btn btn-outline btn-sm"
+            >
+              <Undo2 className="size-4 rtl:-scale-x-100" strokeWidth={2} aria-hidden="true" />
+              {t("undo")}
+            </button>
+            <button type="button" onClick={() => void setDeletedParam(null)} className="btn btn-quiet btn-sm">
+              {t("dismiss")}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 space-y-3">
         <SearchBox value={query} onChange={(value) => void setQuery(value || null)} placeholder={t("searchUnits")} />
@@ -86,8 +139,8 @@ export function UnitList({ units }: { units: UnitRow[] }) {
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: t("filterAll"), count: units.length - counts.archived },
-            ...UNIT_STATUS_ORDER.map((status) => ({
+            { value: "all", label: t("filterAll"), count: units.length },
+            ...UNIT_STATUS_CHOICES.map((status) => ({
               value: status,
               label: ts(status),
               count: counts[status],

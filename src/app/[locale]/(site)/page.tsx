@@ -30,9 +30,10 @@ import { RefCodeSearch } from "@/components/property/RefCodeSearch";
 import { Photo } from "@/components/ui/Photo";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { getAreaCounts, getFeatured, getTypeCounts } from "@/lib/data";
-import { areas, contact, office, propertyTypes, type PropertyTypeSlug } from "@/content/client-facts";
+import { areas, office, propertyTypes, type PropertyTypeSlug } from "@/content/client-facts";
 import { AREA_PHOTOS, LIB, photo } from "@/content/photos";
 import { hasVerifiedContact, telHref, waHref } from "@/lib/contact";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 import { cn } from "@/lib/utils";
 
 const TYPE_ICONS: Record<PropertyTypeSlug, LucideIcon> = {
@@ -70,9 +71,10 @@ export default async function HomePage({
     getAreaCounts(),
     getTypeCounts(),
   ]);
+  const details = await getBusinessDetails();
 
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
-  const waLink = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
+  const waLink = waHref(details, tw("templateGeneral", { area: office.city[locale] }), locale);
   const external = waLink.startsWith("http");
   const types = propertyTypes.filter((type) => typeCounts[type.slug] > 0);
 
@@ -266,10 +268,10 @@ export default async function HomePage({
               {tp("whatsappShort")}
             </a>
             {hasVerifiedContact && (
-              <a href={telHref(locale)} className="btn btn-quiet btn-lg">
+              <a href={telHref(details, locale)} className="btn btn-quiet btn-lg">
                 <Phone className="size-5" strokeWidth={2} aria-hidden="true" />
                 <span dir="ltr" className="tabular-nums">
-                  {contact.phone}
+                  {details.phone}
                 </span>
               </a>
             )}

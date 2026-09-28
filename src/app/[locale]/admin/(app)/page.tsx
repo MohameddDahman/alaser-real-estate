@@ -1,11 +1,11 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { AlertTriangle, CheckCircle2, ChevronRight, Clock, FilePen, Inbox, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, Clock, FilePen, Inbox, Plus, Trash2 } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { allProperties } from "@/lib/data/store";
 import { listInquiries } from "@/lib/data/inquiries";
-import { toUnitRow, type UnitRow } from "@/lib/data/admin-rows";
+import { deletedItems, toUnitRow, type UnitRow } from "@/lib/data/admin-rows";
 import { toLeadRows } from "@/lib/data/lead-rows";
 import { timeAgo } from "@/lib/time-ago";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export default async function AdminDashboard({
 
   const count = (status: string) => units.filter((u) => u.status === status).length;
   const newLeads = inquiries.filter((lead) => lead.status === "new").length;
+  const trash = deletedItems(properties);
 
   const live = units.filter((u) => VISIBLE.has(u.status));
   const incomplete = live.filter((u) => u.missing.length > 0);
@@ -57,6 +58,8 @@ export default async function AdminDashboard({
     { href: "/admin/properties?status=available", label: tp("available"), value: count("available"), Icon: CheckCircle2 },
     { href: "/admin/properties?status=reserved", label: tp("reserved"), value: count("reserved"), Icon: Clock },
     { href: "/admin/properties?status=draft", label: t("statDrafts"), value: count("draft"), Icon: FilePen },
+    // Full width under the others on a phone, fifth in the row on a laptop.
+    { href: "/admin/deleted", label: t("navDeleted"), value: trash.units.length + trash.photos.length, Icon: Trash2, wide: true },
   ];
 
   return (
@@ -72,13 +75,14 @@ export default async function AdminDashboard({
         }
       />
 
-      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map(({ href, label, value, Icon, accent }) => (
-          <li key={href}>
+      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {stats.map(({ href, label, value, Icon, accent, wide }) => (
+          <li key={href} className={wide ? "col-span-2 lg:col-span-1" : undefined}>
             <Link
               href={href}
               className={cn(
-                "flex h-full flex-col rounded-xl border p-4 shadow-card transition-colors",
+                "flex h-full rounded-xl border p-4 shadow-card transition-colors",
+                wide ? "flex-row items-center gap-3 lg:flex-col lg:items-start lg:gap-0" : "flex-col",
                 accent
                   ? "border-primary bg-primary text-white hover:bg-primary-hover"
                   : "border-line bg-canvas hover:border-line-strong",
@@ -89,8 +93,16 @@ export default async function AdminDashboard({
                 strokeWidth={2}
                 aria-hidden="true"
               />
-              <span className="mt-3 text-[1.75rem] font-bold leading-none tabular-nums">{value}</span>
-              <span className={cn("mt-1.5 text-sm font-medium", accent ? "text-white/90" : "text-fg-muted")}>
+              <span className={cn("text-[1.75rem] font-bold leading-none tabular-nums", wide ? "lg:mt-3" : "mt-3")}>
+                {value}
+              </span>
+              <span
+                className={cn(
+                  "text-sm font-medium",
+                  wide ? "lg:mt-1.5" : "mt-1.5",
+                  accent ? "text-white/90" : "text-fg-muted",
+                )}
+              >
                 {label}
               </span>
             </Link>

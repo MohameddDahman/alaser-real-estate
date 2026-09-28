@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Building2, Home, Inbox, Settings } from "lucide-react";
+import { Building2, Home, Inbox, Settings, Trash2 } from "lucide-react";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,9 @@ const ITEMS = [
   { href: "/admin/leads", key: "navLeads", Icon: Inbox },
   { href: "/admin/settings", key: "navSettings", Icon: Settings },
 ] as const;
+
+/** Only in the side menu; on a phone it opens from Units and Settings. */
+const DELETED = { href: "/admin/deleted", key: "navDeleted", Icon: Trash2 } as const;
 
 /**
  * Side menu on a laptop, tab bar on a phone - four places, each with an icon
@@ -34,8 +37,8 @@ export function AdminNav({ newLeads }: { newLeads: number }) {
     <>
       <nav aria-label={t("title")} className="hidden w-56 shrink-0 lg:block">
         <ul className="sticky top-22 space-y-1">
-          {ITEMS.map(({ href, key, Icon }) => (
-            <li key={href}>
+          {[...ITEMS, DELETED].map(({ href, key, Icon }) => (
+            <li key={href} className={href === DELETED.href ? "border-t border-line pt-1" : undefined}>
               <Link
                 href={href}
                 aria-current={isActive(href) ? "page" : undefined}

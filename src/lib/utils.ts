@@ -73,6 +73,11 @@ export function internationalDigits(phone: string) {
   return digits;
 }
 
+/** 201095115184 -> 01095115184: an Egyptian mobile the way people write it. */
+export function localMobile(international: string) {
+  return /^201[0125]\d{8}$/.test(international) ? `0${international.slice(2)}` : international;
+}
+
 /** Arabic-Indic and Persian digits as 0-9, so a number typed on an Arabic keyboard still counts. */
 export function toLatinDigits(value: string) {
   return value.replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));

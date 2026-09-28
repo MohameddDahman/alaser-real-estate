@@ -10,9 +10,10 @@ import { bookPages, layoutBook, type BookPage } from "@/components/portfolio/lay
 import { PageIntro } from "@/components/ui/PageIntro";
 import { Photo } from "@/components/ui/Photo";
 import { getAreaCounts, getProperties, planForProperty } from "@/lib/data";
-import { areas, brand, contact, office } from "@/content/client-facts";
+import { areas, brand } from "@/content/client-facts";
 import { HERO_PHOTOS, photo } from "@/content/photos";
 import { waHref } from "@/lib/contact";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 import { formatNumber, formatPrice, pricePerMeter } from "@/lib/utils";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -32,6 +33,7 @@ export default async function PortfolioPage({ params }: Props) {
   const tp = await getTranslations("property");
   const th = await getTranslations("home");
   const tn = await getTranslations("nav");
+  const details = await getBusinessDetails();
 
   // A sales portfolio carries what can be bought: available and reserved.
   // Sold units stay on the site for price transparency, but not in the book.
@@ -144,8 +146,8 @@ export default async function PortfolioPage({ params }: Props) {
     enquireTitle: t("enquireTitle"),
     enquireBody: t("enquireBody"),
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
-    phone: contact.phone,
-    address: office.address[locale],
+    phone: details.phone,
+    address: details.address[locale],
     backNote: t("backNote", { date: dateLabel }),
   };
 
@@ -207,7 +209,7 @@ export default async function PortfolioPage({ params }: Props) {
     return t("pageLabel", { n: folio(p), title });
   });
 
-  const requestLink = waHref(t("requestTemplate"), locale);
+  const requestLink = waHref(details, t("requestTemplate"), locale);
   const external = requestLink.startsWith("http");
 
   return (

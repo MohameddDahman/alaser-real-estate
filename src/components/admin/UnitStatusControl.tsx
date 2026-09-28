@@ -7,7 +7,7 @@ import { changeStatus } from "@/app/actions/admin";
 import type { PropertyStatus } from "@/lib/data/types";
 import type { SiteRequirement } from "@/lib/data/validation";
 import { Select } from "@/components/ui/Select";
-import { Dot, UNIT_STATUS_ORDER, UNIT_TONE } from "./status";
+import { Dot, UNIT_STATUS_CHOICES, UNIT_TONE } from "./status";
 
 /**
  * Change a unit's status from the list - one tap to open, one to choose.
@@ -36,7 +36,7 @@ export function UnitStatusControl({
       label={ta("changeStatus")}
       value={status}
       disabled={pending}
-      options={UNIT_STATUS_ORDER.map((value) => ({ value, label: t(value) }))}
+      options={UNIT_STATUS_CHOICES.map((value) => ({ value, label: t(value) }))}
       leading={<Dot className={UNIT_TONE[status]} />}
       onChange={(value) => {
         const next = value as PropertyStatus;

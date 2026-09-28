@@ -7,6 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "../globals.css";
 import { fontVariables } from "@/lib/fonts";
 import { localeMeta, routing, type Locale } from "@/i18n/routing";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 import { brand, office } from "@/content/client-facts";
 
 export function generateStaticParams() {
@@ -58,6 +59,7 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
+  const details = await getBusinessDetails();
 
   return (
     <html
@@ -87,10 +89,14 @@ export default async function LocaleLayout({
               areaServed: ["Faisal", "Haram", "Hadayek El-Ahram", "6th of October", "Sheikh Zayed"],
               address: {
                 "@type": "PostalAddress",
-                streetAddress: office.address[locale as Locale],
+                streetAddress: details.address[locale as Locale],
                 addressLocality: office.city[locale as Locale],
                 addressCountry: "EG",
               },
+              telephone: details.phone,
+              email: details.email,
+              hasMap: details.mapUrl,
+              sameAs: details.links.length ? details.links.map((link) => link.url) : undefined,
             }),
           }}
         />

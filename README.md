@@ -197,9 +197,23 @@ the same light look as the public site.
 - **Leads** - opens on the enquiries nobody has answered. Each has Call,
   WhatsApp (the reply already names the unit, in the visitor's language) and
   a status: new, contacted, viewing booked, deal done, not interested.
-- **Settings** - language, the site and signing out (the phone header has
-  no room for them), the business details and what is still needed from
-  the client.
+- **Deleted items** (`/admin/deleted`) - a unit deleted from the editor
+  comes off the site and out of the lists but keeps everything (it is the
+  `archived` status, with the date and the status to come back as). Photos
+  taken off a unit wait here too. Restore is one tap; "Delete for good"
+  asks first, deletes the photographs' files from storage, and keeps only
+  the unit's reference code so it is never handed out again. The list
+  offers Undo straight after a delete; the dashboard counts what is waiting.
+- **Settings** - language, Deleted items, the site and signing out (the
+  phone header has no room for them), then the **business details** the
+  client edits: phone, WhatsApp, email, office address, the Google Maps
+  link, any number of links (Instagram, Facebook, TikTok, a listings
+  profile - known sites name themselves), years in business and units sold.
+  One save updates every page: header, footer, contact page, unit pages,
+  the portfolio, the WhatsApp buttons and the organisation data search
+  engines read (`lib/data/site-settings.ts`, `lib/contact.ts`). The
+  company's name, areas, types and tenures stay in `client-facts.ts`: they
+  are the site's structure - pages, filters, photographs - not settings.
 
 ---
 
@@ -213,7 +227,10 @@ uses for photographs** — no database, no extra account to create
   one document of overrides merged over the seed. Every save is a new,
   immutable file; the newest is current and the last ten are kept as history.
   Nothing is overwritten in place, so no read can see a stale or half-written
-  version.
+  version. A field cleared over the seed is stored as `null`, so the seed's
+  value cannot show through again.
+- **Business details** are their own small document (`settings`), merged
+  over the confirmed values in `client-facts.ts`.
 - **Enquiries** are one file each, so two sent in the same second can never
   overwrite each other. An enquiry is never rewritten: where the client has
   got to with it (contacted, viewing booked, deal done, not interested) is a

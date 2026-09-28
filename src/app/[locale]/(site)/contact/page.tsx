@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ExternalLink, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ExternalLink, Mail, MapPin, MessageCircle, Navigation, Phone } from "lucide-react";
 
 import type { Locale } from "@/i18n/routing";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { EnquiryForm } from "@/components/property/EnquiryForm";
-import { contact, office, social } from "@/content/client-facts";
-import { hasVerifiedContact, telHref, waHref } from "@/lib/contact";
+import { office } from "@/content/client-facts";
+import { hasVerifiedContact, linkName, telHref, waHref } from "@/lib/contact";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -25,8 +26,9 @@ export default async function ContactPage({ params }: Props) {
   const tn = await getTranslations("nav");
   const tp = await getTranslations("property");
   const tw = await getTranslations("whatsapp");
+  const details = await getBusinessDetails();
 
-  const waLink = waHref(tw("templateGeneral", { area: office.city[locale] }), locale);
+  const waLink = waHref(details, tw("templateGeneral", { area: office.city[locale] }), locale);
   const external = waLink.startsWith("http");
 
   return (
@@ -63,8 +65,20 @@ export default async function ContactPage({ params }: Props) {
                 <Phone className="size-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
                 {tp("call")}
               </p>
-              <a href={telHref(locale)} className="link mt-1.5 inline-block text-lg tabular-nums" dir="ltr">
-                {contact.phone}
+              <a href={telHref(details, locale)} className="link mt-1.5 inline-block text-lg tabular-nums" dir="ltr">
+                {details.phone}
+              </a>
+            </div>
+          )}
+
+          {details.email && (
+            <div className="rounded-lg border border-line bg-canvas p-5">
+              <p className="flex items-center gap-2 font-semibold text-fg">
+                <Mail className="size-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
+                {t("emailTitle")}
+              </p>
+              <a href={`mailto:${details.email}`} className="link mt-1.5 inline-block break-all" dir="ltr">
+                {details.email}
               </a>
             </div>
           )}
@@ -74,19 +88,37 @@ export default async function ContactPage({ params }: Props) {
               <MapPin className="size-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
               {t("officeTitle")}
             </p>
-            <p className="mt-1.5 text-fg-muted">{office.address[locale]}</p>
+            <p className="mt-1.5 text-fg-muted">{details.address[locale]}</p>
+            {details.mapUrl && (
+              <a href={details.mapUrl} target="_blank" rel="noreferrer" className="btn btn-outline mt-4 w-full">
+                <Navigation className="size-4" strokeWidth={2} aria-hidden="true" />
+                {t("openMap")}
+              </a>
+            )}
           </div>
 
-          {social.facebook && (
-            <a
-              href={social.facebook}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between gap-3 rounded-lg border border-line bg-canvas p-5 font-semibold text-fg transition-colors hover:border-primary hover:text-primary"
-            >
-              Facebook
-              <ExternalLink className="size-4" strokeWidth={2} aria-hidden="true" />
-            </a>
+          {/* Whatever pages the client has linked in the dashboard. */}
+          {details.links.length > 0 && (
+            <div className="rounded-lg border border-line bg-canvas p-5">
+              <p className="font-semibold text-fg">{t("findUsOnline")}</p>
+              <ul className="mt-2 divide-y divide-line">
+                {details.links.map((link) => (
+                  <li key={link.url}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex min-h-11 items-center justify-between gap-3 font-medium text-fg transition-colors hover:text-primary"
+                    >
+                      <span className="min-w-0 truncate" dir="auto">
+                        {linkName(link)}
+                      </span>
+                      <ExternalLink className="size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
 

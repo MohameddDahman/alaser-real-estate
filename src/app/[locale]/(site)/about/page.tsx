@@ -6,7 +6,8 @@ import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { Mark } from "@/components/brand/Mark";
-import { areas, brand, office, stats, team, tenures } from "@/content/client-facts";
+import { areas, brand, team, tenures } from "@/content/client-facts";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -24,6 +25,7 @@ export default async function AboutPage({ params }: Props) {
   const t = await getTranslations("about");
   const tn = await getTranslations("nav");
   const ts = await getTranslations("search");
+  const details = await getBusinessDetails();
 
   return (
     <>
@@ -84,7 +86,26 @@ export default async function AboutPage({ params }: Props) {
               ))}
             </ul>
           )}
-          {!stats.verified && <p className="mt-3 text-sm text-fg-subtle">{t("statsEmpty")}</p>}
+          {/* The company's numbers appear once the client has entered them in
+              the dashboard; until then, the honest note stands. */}
+          {details.yearsActive || details.unitsSold ? (
+            <dl className="mt-5 flex flex-wrap gap-4">
+              {details.yearsActive ? (
+                <div className="min-w-36 rounded-lg border border-line p-4">
+                  <dd className="text-[1.75rem] font-bold leading-none text-fg tabular-nums">{details.yearsActive}</dd>
+                  <dt className="mt-1.5 text-sm text-fg-muted">{t("yearsInBusiness")}</dt>
+                </div>
+              ) : null}
+              {details.unitsSold ? (
+                <div className="min-w-36 rounded-lg border border-line p-4">
+                  <dd className="text-[1.75rem] font-bold leading-none text-fg tabular-nums">{details.unitsSold}</dd>
+                  <dt className="mt-1.5 text-sm text-fg-muted">{t("unitsSold")}</dt>
+                </div>
+              ) : null}
+            </dl>
+          ) : (
+            <p className="mt-3 text-sm text-fg-subtle">{t("statsEmpty")}</p>
+          )}
         </div>
 
         <aside className="lg:pt-1">
@@ -106,7 +127,7 @@ export default async function AboutPage({ params }: Props) {
                 <MapPin className="mt-0.5 size-4 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
                 <p>
                   <span className="block text-xs text-fg-subtle">{t("officeLabel")}</span>
-                  <span className="font-medium text-fg">{office.address[locale]}</span>
+                  <span className="font-medium text-fg">{details.address[locale]}</span>
                 </p>
               </li>
               <li className="flex gap-3">

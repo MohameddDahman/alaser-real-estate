@@ -11,6 +11,8 @@ import {
   isAuthed,
   verifyPassword,
 } from "@/lib/admin-auth";
+import { deleteFiles } from "@/lib/data/blob-store";
+import { readDetailsForm, type DetailField } from "@/lib/data/details-form";
 import { LEAD_STATUSES, setLeadStatus, type LeadStatus } from "@/lib/data/inquiries";
 import {
   PUBLIC_STATUSES,
@@ -18,10 +20,12 @@ import {
   freeRefCode,
   getPropertyById,
   publishedAtFor,
+  purgeProperty,
   setStatus,
   updateProperty,
 } from "@/lib/data/store";
 import type { Property, PropertyStatus } from "@/lib/data/types";
+import { saveBusinessDetails } from "@/lib/data/site-settings";
 import { UNIT_STATUSES, readUnitForm, unitSlug } from "@/lib/data/unit-form";
 import { missingForSite, type SiteRequirement } from "@/lib/data/validation";
 import { clearMisses, isLockedOut, recordMiss } from "@/lib/login-throttle";
@@ -95,7 +99,8 @@ export async function changeStatus(formData: FormData): Promise<StatusResult> {
   const id = String(formData.get("id"));
   const status = String(formData.get("status")) as PropertyStatus;
   const unit = await getPropertyById(id);
-  if (!unit || !UNIT_STATUSES.includes(status)) return {};
+  // Deleting is its own action, so a deleted unit always has somewhere to go back to.
+  if (!unit || !UNIT_STATUSES.includes(status) || status === "archived") return {};
 
   if (PUBLIC_STATUSES.includes(status)) {
     const missing = missingForSite(unit);
@@ -138,11 +143,23 @@ export async function saveUnit(_prev: SaveState, formData: FormData): Promise<Sa
   const publishedAt = publishedAtFor(fields.status, existing?.publishedAt);
 
   if (existing) {
+    // Photographs taken off the unit wait in Deleted items; one that is
+    // back in the gallery leaves them.
+    const kept = new Set(fields.gallery.map((photo) => photo.src));
+    const now = Date.now();
+    const removedPhotos = [
+      ...existing.gallery.map((photo) => ({ ...photo, removedAt: now })),
+      ...(existing.removedPhotos ?? []),
+    ]
+      .filter((photo, i, all) => !kept.has(photo.src) && all.findIndex((p) => p.src === photo.src) === i)
+      .slice(0, 60);
+
     // A plan or cover taken off is stored as cleared, not merely left out.
     await updateProperty(existing._id, {
       ...fields,
       paymentPlan: fields.paymentPlan ?? null,
       coverImage: fields.coverImage ?? null,
+      removedPhotos,
       publishedAt,
     });
     refreshSite();
@@ -161,6 +178,129 @@ export async function saveUnit(_prev: SaveState, formData: FormData): Promise<Sa
   await createProperty(unit);
   refreshSite();
   redirect(`/${String(formData.get("locale") ?? "en")}/admin/properties/${unit._id}?created=1`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Deleted items                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Delete a unit: it comes off the site and out of the lists, keeps
+ * everything, and remembers what it was - restoring puts it back as it was.
+ * Lands on the list, which offers to undo it.
+ */
+export async function deleteUnit(formData: FormData): Promise<void> {
+  await assertAuthed();
+
+  const id = String(formData.get("id") ?? "");
+  const unit = await getPropertyById(id);
+  if (unit && unit.status !== "archived") {
+    await updateProperty(id, { status: "archived", deletedAt: Date.now(), restoreStatus: unit.status });
+    refreshSite();
+  }
+  redirect(`/${String(formData.get("locale") ?? "en")}/admin/properties?deleted=${encodeURIComponent(id)}`);
+}
+
+export type TrashResult = { ok?: boolean; restoredAs?: PropertyStatus };
+
+export async function restoreUnit(formData: FormData): Promise<TrashResult> {
+  await assertAuthed();
+
+  const unit = await getPropertyById(String(formData.get("id") ?? ""));
+  if (!unit || unit.status !== "archived") return {};
+  const wanted = unit.restoreStatus && unit.restoreStatus !== "archived" ? unit.restoreStatus : "draft";
+  // One no longer complete enough to show comes back as a draft.
+  const status = PUBLIC_STATUSES.includes(wanted) && missingForSite(unit).length > 0 ? "draft" : wanted;
+
+  await updateProperty(unit._id, {
+    status,
+    deletedAt: null,
+    restoreStatus: null,
+    publishedAt: publishedAtFor(status, unit.publishedAt),
+  });
+  refreshSite();
+  return { ok: true, restoredAs: status };
+}
+
+/**
+ * Delete a unit for good, photographs and all. Only from Deleted items:
+ * nothing on the site can be destroyed in a single step.
+ */
+export async function purgeUnit(formData: FormData): Promise<TrashResult> {
+  await assertAuthed();
+
+  const unit = await getPropertyById(String(formData.get("id") ?? ""));
+  if (!unit || unit.status !== "archived") return {};
+
+  const files = [...unit.gallery, ...(unit.removedPhotos ?? [])].map((photo) => photo.src);
+  await deleteFiles(files).catch((error) => console.error("[purge] photos not deleted", error));
+  await purgeProperty(unit._id, unit.refCode);
+  refreshSite();
+  return { ok: true };
+}
+
+/** Put a removed photograph back, at the end of its unit's photographs. */
+export async function restorePhoto(formData: FormData): Promise<TrashResult> {
+  await assertAuthed();
+
+  const unit = await getPropertyById(String(formData.get("id") ?? ""));
+  const src = String(formData.get("src") ?? "");
+  const photo = unit?.removedPhotos?.find((p) => p.src === src);
+  if (!unit || !photo) return {};
+
+  const gallery = [
+    ...unit.gallery,
+    {
+      src: photo.src,
+      alt: photo.alt,
+      room: photo.room,
+      width: photo.width,
+      height: photo.height,
+      blurDataURL: photo.blurDataURL,
+      order: unit.gallery.length,
+    },
+  ].slice(0, 40);
+
+  await updateProperty(unit._id, {
+    gallery,
+    coverImage: gallery[0],
+    removedPhotos: unit.removedPhotos!.filter((p) => p.src !== src),
+  });
+  refreshSite();
+  return { ok: true };
+}
+
+export async function purgePhoto(formData: FormData): Promise<TrashResult> {
+  await assertAuthed();
+
+  const unit = await getPropertyById(String(formData.get("id") ?? ""));
+  const src = String(formData.get("src") ?? "");
+  if (!unit?.removedPhotos?.some((p) => p.src === src)) return {};
+
+  await deleteFiles([src]).catch((error) => console.error("[purge] photo not deleted", error));
+  await updateProperty(unit._id, { removedPhotos: unit.removedPhotos.filter((p) => p.src !== src) });
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Business details                                                    */
+/* ------------------------------------------------------------------ */
+
+export type DetailsState = { ok?: boolean; savedAt?: number; errors?: DetailField[] };
+
+/**
+ * The phone number, WhatsApp, email, address, map pin, Facebook page and the
+ * company's numbers - everywhere on the site, from one save.
+ */
+export async function saveDetails(_prev: DetailsState, formData: FormData): Promise<DetailsState> {
+  await assertAuthed();
+
+  const result = readDetailsForm(formData);
+  if (result.errors) return { errors: result.errors };
+
+  await saveBusinessDetails(result.details);
+  refreshSite();
+  return { ok: true, savedAt: Date.now() };
 }
 
 /** Where the client has got to with an enquiry: called, viewing booked, won, lost. */

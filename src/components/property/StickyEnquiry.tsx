@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { MessageCircle } from "lucide-react";
 
 import { waHref } from "@/lib/contact";
+import { useDetails } from "@/components/layout/DetailsProvider";
 import type { Locale } from "@/i18n/routing";
 
 /**
@@ -30,6 +31,7 @@ export function StickyEnquiry({
   const t = useTranslations("property");
   const tw = useTranslations("whatsapp");
   const locale = (useParams().locale as Locale) ?? "en";
+  const details = useDetails();
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function StickyEnquiry({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const href = waHref(tw("template", { ref: refCode, title }), locale);
+  const href = waHref(details, tw("template", { ref: refCode, title }), locale);
   const external = href.startsWith("http");
 
   return (

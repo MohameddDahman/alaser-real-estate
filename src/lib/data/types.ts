@@ -133,6 +133,17 @@ export type Property = {
   featuredOrder?: number;
   views: number;
   publishedAt?: number;
+
+  /**
+   * Deleted items. A deleted unit has the `archived` status - off the site
+   * and out of the lists - and remembers when, and what to come back as.
+   */
+  deletedAt?: number;
+  restoreStatus?: PropertyStatus;
+  /** Photographs taken off the unit, kept so they can be put back. */
+  removedPhotos?: Array<GalleryImage & { removedAt: number }>;
+  /** Deleted for good: only the reference code is kept, so it is never reused. */
+  purged?: boolean;
 };
 
 /** Filter state. Mirrors the URL exactly - see useListingFilters. */

@@ -65,8 +65,8 @@ async function writeOverrides(overrides: Overrides): Promise<void> {
   revalidateTag(STORE_TAG);
 }
 
-/** Every property the system knows about, including drafts and archived. */
-export async function allProperties(): Promise<Property[]> {
+/** Every unit ever made, including those deleted for good. */
+async function everyUnit(): Promise<Property[]> {
   const overrides = await readOverrides();
   const seeded = SEED_PROPERTIES.map((property) =>
     overrides[property._id] ? apply(property, overrides[property._id]) : property,
@@ -78,6 +78,11 @@ export async function allProperties(): Promise<Property[]> {
     .map(([, value]) => apply({}, value));
 
   return [...extra, ...seeded];
+}
+
+/** Every property the system knows about, including drafts and deleted ones. */
+export async function allProperties(): Promise<Property[]> {
+  return (await everyUnit()).filter((unit) => !unit.purged);
 }
 
 export async function getPropertyById(id: string): Promise<Property | null> {
@@ -119,11 +124,23 @@ export async function createProperty(property: Property): Promise<void> {
 }
 
 /**
+ * Delete a unit for good. Everything about it goes except its reference
+ * code, which stays behind so it is never handed to another unit - an old
+ * enquiry that names it must not point at a different flat.
+ */
+export async function purgeProperty(id: string, refCode: string): Promise<void> {
+  const overrides = await loadOverrides();
+  overrides[id] = { _id: id, refCode, purged: true };
+  await writeOverrides(overrides);
+}
+
+/**
  * Reference codes are generated, unique and immutable once published.
  * Sequential rather than random, because the client reads them down a phone.
+ * Codes of units deleted for good still count, so none is ever reused.
  */
 export async function nextRefCode(): Promise<string> {
-  const rows = await allProperties();
+  const rows = await everyUnit();
   const highest = rows.reduce((max, p) => {
     const n = Number(p.refCode.replace(/\D/g, ""));
     return Number.isFinite(n) && n > max ? n : max;
@@ -136,7 +153,7 @@ export async function nextRefCode(): Promise<string> {
  * since - two people adding a unit at once must not end up sharing one.
  */
 export async function freeRefCode(wanted: string): Promise<string> {
-  const rows = await allProperties();
+  const rows = await everyUnit();
   if (/^ALS-\d{4,}$/.test(wanted) && !rows.some((p) => p.refCode === wanted)) return wanted;
   return nextRefCode();
 }

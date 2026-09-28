@@ -35,9 +35,10 @@ import {
   planForProperty,
   planNetArea,
 } from "@/lib/data";
-import { brand, contact, office } from "@/content/client-facts";
+import { brand, office } from "@/content/client-facts";
 import { PHOTOS_ARE_PLACEHOLDERS } from "@/content/photos";
 import { hasVerifiedContact, telHref, waHref } from "@/lib/contact";
+import { getBusinessDetails } from "@/lib/data/site-settings";
 import { listingMeta } from "@/lib/listing";
 import { formatNumber } from "@/lib/utils";
 import { SITE_URL } from "@/lib/site";
@@ -96,7 +97,8 @@ export default async function PropertyPage({ params }: Props) {
   const price = meta.price ?? t("priceOnRequest");
   const period = meta.period === "month" ? t("perMonth") : meta.period === "year" ? t("perYear") : null;
 
-  const waLink = waHref(tw("template", { ref: property.refCode, title: property.title[locale] }), locale);
+  const details = await getBusinessDetails();
+  const waLink = waHref(details, tw("template", { ref: property.refCode, title: property.title[locale] }), locale);
   const external = waLink.startsWith("http");
   const street = property.location.street?.[locale];
 
@@ -401,9 +403,9 @@ export default async function PropertyPage({ params }: Props) {
                   {t("requestViewing")}
                 </a>
                 {hasVerifiedContact && (
-                  <a href={telHref(locale)} className="btn btn-quiet w-full">
+                  <a href={telHref(details, locale)} className="btn btn-quiet w-full">
                     <Phone className="size-4" strokeWidth={2} aria-hidden="true" />
-                    {t("call")} <span dir="ltr" className="tabular-nums">{contact.phone}</span>
+                    {t("call")} <span dir="ltr" className="tabular-nums">{details.phone}</span>
                   </a>
                 )}
               </div>
@@ -430,7 +432,7 @@ export default async function PropertyPage({ params }: Props) {
               <div className="min-w-0 text-sm">
                 <p className="text-xs text-fg-subtle">{t("listedBy")}</p>
                 <p className="font-semibold text-fg">{brand.legalName[locale]}</p>
-                <p className="mt-1 text-fg-muted">{office.address[locale]}</p>
+                <p className="mt-1 text-fg-muted">{details.address[locale]}</p>
                 <p className="mt-1 text-fg-muted">{t("agentReply")}</p>
               </div>
             </div>

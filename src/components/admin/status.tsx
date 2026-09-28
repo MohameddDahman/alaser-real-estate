@@ -32,6 +32,12 @@ export const UNIT_STATUS_ORDER: PropertyStatus[] = [
   "archived",
 ];
 
+/**
+ * What a unit can be set to. "archived" is where a deleted unit waits in
+ * Deleted items; it is reached by deleting, never picked from a list.
+ */
+export const UNIT_STATUS_CHOICES: PropertyStatus[] = UNIT_STATUS_ORDER.filter((s) => s !== "archived");
+
 export const LEAD_STATUS_ORDER: LeadStatus[] = ["new", "contacted", "viewing_booked", "won", "lost"];
 
 export function Dot({ className }: { className?: string }) {
