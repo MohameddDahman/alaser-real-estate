@@ -515,7 +515,7 @@
     "secFeatures": "Features",
     "secFeaturesHelp": "Tap everything the unit has.",
     "fieldFeatured": "Show on the home page",
-    "fieldFeaturedHint": "Featured units are the first ones visitors see.",
+    "fieldFeaturedHint": "Shown first in Featured on the home page, up to 8. With fewer than 4 switched on, the newest units fill the row.",
     "previewStandIn": "A stand-in photo until you add this unit's own.",
     "addPhotos": "Add photos",
     "photosHint": "From your phone or computer - they are made smaller before they upload.",
@@ -602,7 +602,10 @@
     "linkUrl": "Link",
     "linkName": "Name (optional)",
     "addLink": "Add a link",
-    "removeLink": "Remove"
+    "removeLink": "Remove",
+    "onHomePage": "On the home page",
+    "removeFromHomePage": "Take off the home page",
+    "filterHomePage": "On the home page"
   },
   "portfolio": {
     "navLabel": "Portfolio",

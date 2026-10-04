@@ -383,6 +383,17 @@ export function UnitEditor({
                 </ul>
               </div>
             )}
+
+            {/* Where it shows, together: on the site at all, and on the home page. */}
+            <div className="mt-5 border-t border-line pt-4">
+              <Toggle
+                name="featured"
+                label={t("fieldFeatured")}
+                hint={t("fieldFeaturedHint")}
+                checked={draft.featured}
+                onChange={(value) => set("featured", value)}
+              />
+            </div>
           </Card>
 
           {/* The basics ------------------------------------------------ */}
@@ -794,16 +805,6 @@ export function UnitEditor({
             </fieldset>
           </Card>
 
-          {/* Home page ------------------------------------------------- */}
-          <Card>
-            <Toggle
-              name="featured"
-              label={t("fieldFeatured")}
-              hint={t("fieldFeaturedHint")}
-              checked={draft.featured}
-              onChange={(value) => set("featured", value)}
-            />
-          </Card>
 
           {/* Delete - to Deleted items, where it can be restored. -------- */}
           {unit && !isDeleted && (

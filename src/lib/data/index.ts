@@ -199,12 +199,26 @@ export async function getAllPropertySlugs(): Promise<string[]> {
   return (await publicRows()).map((p) => p.slug);
 }
 
-export async function getFeatured(limit = 6): Promise<Property[]> {
-  return (await publicRows())
+/**
+ * The home page's featured row: every unit the client switched on for the
+ * home page, first, up to `max` - in their order, then newest first. With
+ * fewer than `min` switched on, the newest units on the market fill the
+ * row, so the home page is never left with one card and an empty shelf.
+ */
+export async function getFeatured(max = 8, min = 4): Promise<Property[]> {
+  const rows = await publicRows();
+  const newestFirst = (a: Property, b: Property) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0);
+
+  const picked = rows
     .filter((p) => p.featured)
-    .sort((a, b) => (a.featuredOrder ?? 99) - (b.featuredOrder ?? 99))
-    .slice(0, limit)
-    .map(toPublic);
+    .sort((a, b) => (a.featuredOrder ?? 99) - (b.featuredOrder ?? 99) || newestFirst(a, b))
+    .slice(0, max);
+  const topUp =
+    picked.length < min
+      ? rows.filter((p) => !p.featured && p.status === "available").sort(newestFirst).slice(0, min - picked.length)
+      : [];
+
+  return [...picked, ...topUp].map(toPublic);
 }
 
 export async function getRelated(property: Property, limit = 3): Promise<Property[]> {

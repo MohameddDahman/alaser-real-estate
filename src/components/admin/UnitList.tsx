@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
-import { AlertTriangle, ImageOff, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
+import { AlertTriangle, ImageOff, Pencil, Plus, Star, Trash2, Undo2 } from "lucide-react";
 
 import { restoreUnit } from "@/app/actions/admin";
 
@@ -18,10 +18,12 @@ import { formatPrice } from "@/lib/utils";
 import { EmptyState, PageHeader } from "./ui";
 import { FilterChips, SearchBox } from "./FilterBar";
 import { UNIT_STATUS_CHOICES, UNIT_TONE } from "./status";
+import { FeaturedToggle } from "./FeaturedToggle";
 import { UnitStatusControl } from "./UnitStatusControl";
 import { UnitThumb } from "./UnitThumb";
 
-type Filter = "all" | PropertyStatus;
+/** A status, everything, or the units on the home page. */
+type Filter = "all" | "featured" | PropertyStatus;
 
 /**
  * Every unit, found in a keystroke: search by code, title or area, filter by
@@ -47,7 +49,8 @@ export function UnitList({
   const locale = useLocale() as Locale;
 
   const [param, setFilterParam] = useQueryState("status", parseAsString.withDefault("all"));
-  const filter: Filter = UNIT_STATUS_CHOICES.includes(param as PropertyStatus) ? (param as PropertyStatus) : "all";
+  const filter: Filter =
+    param === "featured" || UNIT_STATUS_CHOICES.includes(param as PropertyStatus) ? (param as Filter) : "all";
   const [query, setQuery] = useQueryState("q", parseAsString.withDefault(""));
   const [, setDeletedParam] = useQueryState("deleted");
   // A unit whose status was just changed stays in view until the filter
@@ -68,7 +71,10 @@ export function UnitList({
   }, [units]);
 
   const shown = units.filter((unit) => {
-    const inFilter = touched.has(unit.id) || filter === "all" || unit.status === filter;
+    const inFilter =
+      touched.has(unit.id) ||
+      filter === "all" ||
+      (filter === "featured" ? unit.featured : unit.status === filter);
     if (!inFilter) return false;
     const area = areas.find((a) => a.slug === unit.area);
     const type = propertyTypes.find((p) => p.slug === unit.propertyType);
@@ -146,6 +152,7 @@ export function UnitList({
               count: counts[status],
               tone: UNIT_TONE[status],
             })),
+            { value: "featured", label: t("filterHomePage"), count: units.filter((u) => u.featured).length },
           ]}
         />
       </div>
@@ -243,6 +250,12 @@ function UnitCard({
             {type && ` · ${type.name[locale]}`}
           </p>
           <p className="mt-1 font-semibold text-fg tabular-nums">{price}</p>
+          {unit.featured && (
+            <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary">
+              <Star className="size-3.5 shrink-0" strokeWidth={2} fill="currentColor" aria-hidden="true" />
+              {t("onHomePage")}
+            </p>
+          )}
           {unit.standIn && (
             <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-warning" title={t("standInHint")}>
               <ImageOff className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
@@ -254,10 +267,13 @@ function UnitCard({
 
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-line px-3 py-2.5">
         <UnitStatusControl id={unit.id} status={unit.status} onChanged={onChanged} onBlocked={onBlocked} />
-        <Link href={href} className="btn btn-sm btn-quiet shrink-0">
-          <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" />
-          {t("edit")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <FeaturedToggle id={unit.id} featured={unit.featured} onChanged={onChanged} />
+          <Link href={href} className="btn btn-sm btn-quiet shrink-0">
+            <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" />
+            {t("edit")}
+          </Link>
+        </div>
       </div>
     </li>
   );

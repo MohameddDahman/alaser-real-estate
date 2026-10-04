@@ -112,6 +112,19 @@ export async function changeStatus(formData: FormData): Promise<StatusResult> {
   return { ok: true };
 }
 
+/** Put a unit on the home page's featured row, or take it off - from the list, in one tap. */
+export async function setFeatured(formData: FormData): Promise<{ ok?: boolean }> {
+  await assertAuthed();
+
+  const id = String(formData.get("id") ?? "");
+  const unit = await getPropertyById(id);
+  if (!unit) return {};
+
+  await updateProperty(id, { featured: formData.get("featured") === "1" });
+  refreshSite();
+  return { ok: true };
+}
+
 export type SaveState = {
   ok?: boolean;
   savedAt?: number;

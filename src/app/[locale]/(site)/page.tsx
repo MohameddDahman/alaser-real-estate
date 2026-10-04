@@ -67,7 +67,7 @@ export default async function HomePage({
   const tp = await getTranslations("property");
   const tw = await getTranslations("whatsapp");
   const [featured, areaCounts, typeCounts] = await Promise.all([
-    getFeatured(4),
+    getFeatured(),
     getAreaCounts(),
     getTypeCounts(),
   ]);
@@ -183,7 +183,7 @@ export default async function HomePage({
               </Link>
             }
           />
-          {/* A swipeable rail on a phone, a row of four on a desk. */}
+          {/* A swipeable rail on a phone, rows of four on a desk. */}
           <ul className="no-scrollbar -mx-4 mt-5 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
             {featured.map((property, i) => (
               <li key={property._id} className="flex w-[80%] max-w-80 shrink-0 snap-start sm:w-auto sm:max-w-none">

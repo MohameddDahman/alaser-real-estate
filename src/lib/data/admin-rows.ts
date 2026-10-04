@@ -28,6 +28,8 @@ export type UnitRow = {
   photos: number;
   standIn: boolean;
   missing: SiteRequirement[];
+  /** Switched on for the home page's featured row. */
+  featured: boolean;
 };
 
 /** A unit waiting in Deleted items. */
@@ -96,5 +98,6 @@ export function toUnitRow(unit: Property): UnitRow {
     photos: unit.gallery.length,
     standIn: unit.gallery.length === 0 && PHOTOS_ARE_PLACEHOLDERS,
     missing: missingForSite(unit),
+    featured: unit.featured,
   };
 }
