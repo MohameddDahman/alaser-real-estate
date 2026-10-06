@@ -116,7 +116,9 @@ export default async function PropertyPage({ params }: Props) {
     ...(specs.bedrooms > 0
       ? [{ icon: BedDouble, label: t("bedroomsLabel"), value: formatNumber(specs.bedrooms, locale) }]
       : []),
-    { icon: Bath, label: t("bathroomsLabel"), value: formatNumber(specs.bathrooms, locale) },
+    ...(specs.bathrooms > 0
+      ? [{ icon: Bath, label: t("bathroomsLabel"), value: formatNumber(specs.bathrooms, locale) }]
+      : []),
     { icon: Ruler, label: t("builtUpArea"), value: `${formatNumber(specs.builtUpArea, locale)} m²` },
     ...(floor ? [{ icon: Layers, label: t("floor"), value: floor }] : []),
     ...(specs.finishing

@@ -10,7 +10,7 @@ import { bookPages, layoutBook, type BookPage } from "@/components/portfolio/lay
 import { PageIntro } from "@/components/ui/PageIntro";
 import { Photo } from "@/components/ui/Photo";
 import { getAreaCounts, getProperties, planForProperty } from "@/lib/data";
-import { areas, brand } from "@/content/client-facts";
+import { areas, brand, propertyTypes } from "@/content/client-facts";
 import { HERO_PHOTOS, photo } from "@/content/photos";
 import { waHref } from "@/lib/contact";
 import { getBusinessDetails } from "@/lib/data/site-settings";
@@ -57,8 +57,15 @@ export default async function PortfolioPage({ params }: Props) {
           ? `${specs.floor} / ${specs.totalFloors}`
           : (specs.floor ?? "—");
 
-    const beds =
-      specs.bedrooms > 0 ? tp("bedrooms", { count: specs.bedrooms }) : tp("bedrooms", { count: 0 });
+    // Rooms where there are rooms to count ("Open plan" for a studio); a
+    // building, a shop or a plot is named by its type instead.
+    const rooms =
+      [
+        specs.bedrooms > 0 || property.propertyType === "studio" ? tp("bedrooms", { count: specs.bedrooms }) : null,
+        specs.bathrooms > 0 ? tp("bathrooms", { count: specs.bathrooms }) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || (propertyTypes.find((p) => p.slug === property.propertyType)?.name[locale] ?? "");
 
     return {
       refCode: property.refCode,
@@ -88,7 +95,7 @@ export default async function PortfolioPage({ params }: Props) {
       facingName: specs.orientation
         ? tp(`orientationName.${specs.orientation}` as "orientationName.N")
         : "",
-      bedsBaths: `${beds} · ${tp("bathrooms", { count: specs.bathrooms })}`,
+      bedsBaths: rooms,
       finishing: specs.finishing
         ? tp(`finishingLevel.${specs.finishing}` as "finishingLevel.full")
         : null,

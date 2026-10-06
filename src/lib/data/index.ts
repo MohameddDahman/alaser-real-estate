@@ -53,7 +53,10 @@ export function planForProperty(property: Property): FloorPlan | null {
   const { propertyType, specs } = property;
   let base: FloorPlan;
 
-  if (propertyType === "villa") base = PLANS["villa-gf"];
+  // A whole building or a plot has no one floor plan to stand in for it;
+  // showing a flat's plan would tell the buyer it is a flat.
+  if (propertyType === "building" || propertyType === "land") return null;
+  if (propertyType === "villa" || propertyType === "house") base = PLANS["villa-gf"];
   else if (propertyType === "shop" || propertyType === "cafe" || propertyType === "office")
     base = PLANS.shop;
   else if (specs.bedrooms >= 3) base = PLANS["apt-3br"];

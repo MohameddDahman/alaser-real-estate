@@ -24,7 +24,9 @@ export async function SpecTable({ property }: { property: Property }) {
     specs.bedrooms > 0
       ? { label: t("bedroomsLabel"), value: formatNumber(specs.bedrooms, locale) }
       : null,
-    { label: t("bathroomsLabel"), value: formatNumber(specs.bathrooms, locale) },
+    specs.bathrooms > 0
+      ? { label: t("bathroomsLabel"), value: formatNumber(specs.bathrooms, locale) }
+      : null,
     specs.floor
       ? {
           label: t("floor"),

@@ -222,10 +222,13 @@ export function KeyFacts({
           {t("bedrooms", { count: specs.bedrooms })}
         </li>
       )}
-      <li className="flex items-center gap-1.5">
-        <Bath className="size-4 shrink-0 text-fg-subtle" strokeWidth={1.75} aria-hidden="true" />
-        {t("bathrooms", { count: specs.bathrooms })}
-      </li>
+      {/* A whole building, a shop or a plot has no count to give - "0 bathrooms" says nothing. */}
+      {specs.bathrooms > 0 && (
+        <li className="flex items-center gap-1.5">
+          <Bath className="size-4 shrink-0 text-fg-subtle" strokeWidth={1.75} aria-hidden="true" />
+          {t("bathrooms", { count: specs.bathrooms })}
+        </li>
+      )}
       <li className="flex items-center gap-1.5">
         <Ruler className="size-4 shrink-0 text-fg-subtle" strokeWidth={1.75} aria-hidden="true" />
         <span dir="ltr" className="tabular-nums">

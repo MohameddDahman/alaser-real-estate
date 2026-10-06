@@ -49,7 +49,7 @@ export default defineSchema({
     ),
     listingType: v.union(v.literal("sale"), v.literal("rent")),
     tenure: v.union(v.literal("tamleek"), v.literal("new-law")),
-    propertyType: v.string(), // apartment | villa | duplex | penthouse | studio | shop | cafe | office | land
+    propertyType: v.string(), // apartment | villa | duplex | penthouse | studio | house | building | shop | cafe | office | land
 
     price: v.object({
       amount: v.optional(v.number()),

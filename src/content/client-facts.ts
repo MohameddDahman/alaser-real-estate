@@ -106,6 +106,10 @@ export type AreaSlug = (typeof areas)[number]["slug"];
  * From their cover banner: "شقق - فيلات - محلات - كافيهات".
  * Shops and cafes mean this is not a residential-only brokerage, so commercial
  * is a first-class filter rather than an afterthought.
+ *
+ * بيت and عمارة were added when the client listed one and had to call it a
+ * villa: a بيت is a family house, often a few floors; a عمارة is a whole
+ * block of flats sold as one. Buyers in Giza ask for them by those names.
  */
 export const propertyTypes = [
   { slug: "apartment", name: { en: "Apartment", ar: "شقة" } },
@@ -113,6 +117,8 @@ export const propertyTypes = [
   { slug: "duplex", name: { en: "Duplex", ar: "دوبلكس" } },
   { slug: "penthouse", name: { en: "Penthouse", ar: "بنتهاوس" } },
   { slug: "studio", name: { en: "Studio", ar: "استوديو" } },
+  { slug: "house", name: { en: "House", ar: "بيت" } },
+  { slug: "building", name: { en: "Building", ar: "عمارة" } },
   { slug: "shop", name: { en: "Shop", ar: "محل" } },
   { slug: "cafe", name: { en: "Cafe", ar: "كافيه" } },
   { slug: "office", name: { en: "Office", ar: "مكتب" } },

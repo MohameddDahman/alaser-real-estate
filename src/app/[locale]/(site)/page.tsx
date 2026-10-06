@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BookOpen,
   Briefcase,
+  Building,
   Building2,
   Check,
   Coffee,
@@ -18,6 +19,7 @@ import {
   Receipt,
   Sofa,
   Store,
+  TreePalm,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,10 +40,12 @@ import { cn } from "@/lib/utils";
 
 const TYPE_ICONS: Record<PropertyTypeSlug, LucideIcon> = {
   apartment: Building2,
-  villa: House,
+  villa: TreePalm,
   duplex: Layers,
   penthouse: Crown,
   studio: Sofa,
+  house: House,
+  building: Building,
   shop: Store,
   cafe: Coffee,
   office: Briefcase,
