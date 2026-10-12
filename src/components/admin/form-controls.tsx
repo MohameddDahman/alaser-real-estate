@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Check, Minus, Plus } from "lucide-react";
 
@@ -93,6 +94,7 @@ export function Stepper({
   max?: number;
 }) {
   const t = useTranslations("admin");
+  const selectOnFocus = useRef(false);
   const step = "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line-strong bg-canvas text-fg transition-colors hover:bg-surface disabled:cursor-default disabled:opacity-40";
   return (
     <div>
@@ -111,11 +113,25 @@ export function Stepper({
           inputMode="numeric"
           autoComplete="off"
           value={String(value)}
+          // Clicking in selects the count, so typing "4" over "3" gives 4,
+          // not 34. The mouseup that follows the click would otherwise drop
+          // the selection again.
+          onFocus={(event) => {
+            selectOnFocus.current = true;
+            event.currentTarget.select();
+          }}
+          onMouseUp={(event) => {
+            if (selectOnFocus.current) event.preventDefault();
+            selectOnFocus.current = false;
+          }}
+          onBlur={() => (selectOnFocus.current = false)}
           onChange={(event) => {
             const digits = toLatinDigits(event.target.value).replace(/[^\d]/g, "");
             onChange(Math.min(max, Number(digits || 0)));
           }}
-          className="field w-16 text-center tabular-nums"
+          // Never narrower than two digits: squeezed by a tight column, the
+          // box once shrank to its own padding and showed nothing at all.
+          className="field w-16 min-w-16 shrink-0 px-1 text-center tabular-nums"
         />
         <button type="button" className={step} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
           <span className="sr-only">{t("increase", { label })}</span>

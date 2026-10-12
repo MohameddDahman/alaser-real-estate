@@ -547,8 +547,11 @@ export function UnitEditor({
 
           {/* Size and rooms -------------------------------------------- */}
           <Card title={t("secSize")}>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label={t("fieldArea")} htmlFor="builtUpArea">
+            {/* Area on its own line, the two counters side by side under it:
+                three across left each counter too narrow to show its number
+                on a laptop, where the preview takes a column of its own. */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("fieldArea")} htmlFor="builtUpArea" className="sm:col-span-2">
                 <NumberInput
                   id="builtUpArea"
                   name="builtUpArea"
