@@ -3,9 +3,9 @@
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { upload } from "@vercel/blob/client";
 import { ChevronLeft, ChevronRight, ImagePlus, Star, Trash2 } from "lucide-react";
 
+import { finishPhotoUpload, startPhotoUpload } from "@/app/actions/admin";
 import { BLUR, ROOM_KEYS, ROOM_WORDS, type RoomKey } from "@/content/photos";
 import { isOptimisable } from "@/lib/images";
 import { prepareImage, safeFilename } from "@/lib/resize-image";
@@ -32,8 +32,9 @@ const MAX_PHOTOS = 40;
  * unit by the editor's one Save button.
  *
  * "Add photos" opens the phone's library (or its camera). Each photograph is
- * resized to 2560px in the browser and sent straight to Blob storage with a
- * short-lived token from /api/admin/upload, several at once, with progress.
+ * resized to 2560px in the browser and sent straight to Convex storage, to a
+ * one-time address the server hands out after checking the session, several
+ * at once, with progress.
  * The first photograph is the cover; the star makes any other one the cover,
  * and the arrows move a photograph earlier or later - buttons, not dragging,
  * because they work the same under a thumb, a mouse and a keyboard.
@@ -139,16 +140,13 @@ export function PhotoSection({
         }
         try {
           const prepared = await prepareImage(file);
-          const blob = await upload(safeFilename(refCode, file.name, prepared.type), prepared.blob, {
-            access: "public",
-            handleUploadUrl: "/api/admin/upload",
-            contentType: prepared.type,
-            onUploadProgress: ({ percentage }) => track(key, { progress: Math.round(percentage) }),
-          });
+          const target = await startPhotoUpload();
+          const storageId = await send(target, prepared.blob, prepared.type, (progress) => track(key, { progress }));
+          const url = await finishPhotoUpload(storageId, safeFilename(refCode, file.name, prepared.type));
           track(key, { progress: 100 });
           return {
-            id: blob.url,
-            src: blob.url,
+            id: url,
+            src: url,
             altEn: "",
             altAr: "",
             room: "",
@@ -346,4 +344,30 @@ export function PhotoSection({
       )}
     </div>
   );
+}
+
+/**
+ * One photograph to its upload address. XMLHttpRequest rather than fetch,
+ * because fetch still cannot report how much of a body has been sent.
+ */
+function send(target: string, body: Blob, type: string, onProgress: (percent: number) => void): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", target);
+    request.setRequestHeader("Content-Type", type);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 99));
+    };
+    request.onload = () => {
+      try {
+        const { storageId } = JSON.parse(request.responseText) as { storageId?: string };
+        if (request.status === 200 && storageId) resolve(storageId);
+        else reject(new Error(`upload-failed-${request.status}`));
+      } catch {
+        reject(new Error("upload-failed"));
+      }
+    };
+    request.onerror = () => reject(new Error("upload-failed"));
+    request.send(body);
+  });
 }

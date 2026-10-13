@@ -4,8 +4,8 @@ Bilingual (AR/EN) marketing site and private dashboard for a real estate
 marketing company in Giza, Egypt.
 
 **Stack:** Next.js 15 (App Router) · TypeScript · Tailwind v4 · Motion ·
-next-intl · nuqs · Vercel Blob for storage *(no database account needed —
-see [Storage](#storage))*
+next-intl · nuqs · Convex for storage — the data and the photographs
+*(see [Storage](#storage))*
 
 ---
 
@@ -69,10 +69,10 @@ src/
     property/  home/  portfolio/  layout/  admin/  ui/  brand/
   content/client-facts.ts SINGLE SOURCE OF TRUTH for everything about the business
   lib/
-    data/                 the read layer, and the Blob-backed store
+    data/                 the read layer, and the Convex-backed store
     plan-geometry.ts      pure geometry, no React
   messages/{en,ar}.json   all copy
-convex/schema.ts          the data model, kept for an optional move to Convex
+convex/                   storage: schema.ts (tables) and store.ts (the functions)
 ```
 
 ### Bilingual + RTL
@@ -219,48 +219,51 @@ the same light look as the public site.
 
 ## Storage
 
-The dashboard keeps its data in the **Vercel Blob store the project already
-uses for photographs** — no database, no extra account to create
-(`src/lib/data/blob-store.ts`). It is durable across restarts and redeploys.
+Everything the client adds — edits, business details, enquiries and every
+photograph — lives in the client's **Convex project, `alaser-realestate`**
+(`convex/`, called through `src/lib/data/convex-store.ts`). Production uses
+the `accurate-leopard-183` deployment; previews and local development use
+`rightful-lyrebird-844`, so a preview never touches real leads. Nothing is
+kept on Vercel storage. (It moved off Vercel Blob on 13 Oct 2026, every file
+and every saved version checked byte for byte.)
 
 - **Edits made in admin** (status, copy, prices, photographs, new units) are
-  one document of overrides merged over the seed. Every save is a new,
-  immutable file; the newest is current and the last ten are kept as history.
-  Nothing is overwritten in place, so no read can see a stale or half-written
-  version. A field cleared over the seed is stored as `null`, so the seed's
-  value cannot show through again.
+  one document of overrides merged over the seed. Every save is a new
+  version; the newest is current and ten older ones are kept as history. A
+  field cleared over the seed is stored as `null`, so the seed's value
+  cannot show through again. A version is split into chunks, so it can grow
+  past Convex's 1 MiB per document.
 - **Business details** are their own small document (`settings`), merged
   over the confirmed values in `client-facts.ts`.
-- **Enquiries** are one file each, so two sent in the same second can never
+- **Enquiries** are one row each, so two sent in the same second can never
   overwrite each other. An enquiry is never rewritten: where the client has
   got to with it (contacted, viewing booked, deal done, not interested) is a
   separate small document of statuses by enquiry id.
-- **Everything is encrypted** (AES-256-GCM) before it is stored. The store is
-  public — it serves the listing photographs — so a file's address alone must
-  never reveal a customer's phone number. Files also sit under a folder name
-  derived from the secret, and production and preview deployments each have
-  their own, so a preview never touches real leads.
-- The public pages read listings through Next's data cache; the store is only
-  asked again after an edit (every write revalidates the `alaser-store` tag).
-  The dashboard reads enquiries and their statuses the same way
-  (`alaser-leads`, `alaser-lead-status`), so opening it all day costs no
-  storage operations until something actually changes.
+- **Photographs** are in Convex file storage; the listings hold their URLs.
+  Deleting one for good from Deleted items deletes the file.
+- **Only this server can call the functions.** Convex functions are
+  reachable by anyone who knows the deployment's address, so every one
+  checks `ALASER_SERVER_KEY`, which only the deployment and the site's
+  server know. The browser is only ever handed a one-time upload address,
+  after the admin session has been checked.
+- The public pages read listings through Next's data cache; Convex is only
+  asked again after an edit (every write revalidates the `alaser-store`
+  tag). The dashboard reads enquiries and their statuses the same way
+  (`alaser-leads`, `alaser-lead-status`).
 
 | Variable | Needed for |
 |---|---|
-| `BLOB_READ_WRITE_TOKEN` | The store. Set automatically when the Blob store is connected to the project. |
-| `ADMIN_SESSION_SECRET` | Also derives the encryption key. **Changing it makes stored data unreadable** — to rotate sessions, first set `DATA_SECRET` to its current value. |
-| `DATA_SECRET` *(optional)* | Takes over as the encryption key when set. |
-| `ALASER_STORE=blob` *(optional, local)* | Development uses `.data/*.json` (gitignored — leads contain phone numbers) so it can never write to live data; set this to use the Blob store locally instead. |
+| `CONVEX_URL` | Which deployment. Set on Vercel: production → `accurate-leopard-183`, preview → `rightful-lyrebird-844`. |
+| `ALASER_SERVER_KEY` | The key every function checks. The same value must be set on the deployment: `npx convex env set ALASER_SERVER_KEY …` (`--prod` for live). |
+| `ALASER_STORE=convex` *(optional, local)* | Development uses `.data/*.json` (gitignored — leads contain phone numbers) so it can never write to live data; set this to use the dev deployment locally instead. |
 
-A deployment with no Blob store connected falls back to the function's temp
+**Changing the functions or the schema** (`convex/`): `npx convex dev --once`
+pushes to the dev deployment, `npx convex deploy` to production. Vercel
+does not deploy Convex code, only the site.
+
+A deployment with no Convex configured falls back to the function's temp
 directory, which does not survive a cold start; the Leads page says so in an
 amber notice when that is the case.
-
-**Later, if wanted:** a private Blob store (Storage → Create → Blob →
-Private in the Vercel dashboard) needs only `access: "private"` in
-`blob-store.ts`. Convex remains possible too — `convex/schema.ts` is the data
-model — with `src/lib/data/store.ts` and `inquiries.ts` as the swap points.
 
 ---
 
@@ -326,10 +329,11 @@ npx tsc --noEmit
 
 ## Photographs
 
-Uploads go **straight from the browser to Vercel Blob**, using a short-lived
-token minted by `/api/admin/upload` (which checks the admin session before
-minting). The bytes never pass through a server action, so ten photographs
-upload in parallel with real progress and a 4MB file is not a problem.
+Uploads go **straight from the browser to Convex storage**, to a one-time
+address handed out by the `startPhotoUpload` action (which checks the admin
+session first). The bytes never pass through a server action, so ten
+photographs upload in parallel with real progress and a 4MB file is not a
+problem. Convex refuses anything that is not an image under 8MB.
 
 Before anything is sent, `src/lib/resize-image.ts` does the work the brief
 asks for, in the browser:

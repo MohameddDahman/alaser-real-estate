@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { DATA_DIR } from "./data-dir";
-import { BLOB_STORE_ENABLED, readDocument, writeDocument } from "./blob-store";
+import { STORE_ENABLED, readDocument, writeDocument } from "./convex-store";
 import { SEED_PROPERTIES } from "./seed";
 import type { Property, PropertyStatus } from "./types";
 
@@ -13,7 +13,7 @@ import type { Property, PropertyStatus } from "./types";
  * The edits are one document of overrides merged over the seed, so the admin
  * is genuinely usable - the client can change a status, fix Arabic copy,
  * publish a draft, and see it on the public site immediately. Deployed, the
- * document lives in the project's Blob store (see blob-store.ts) and survives
+ * document lives in the client's Convex project (see convex-store.ts) and survives
  * every restart and redeploy; in development it is a JSON file in .data/.
  */
 
@@ -39,7 +39,7 @@ function apply(base: Partial<Property>, override: Override): Property {
 
 /** Straight from the store - for building a write on what is really there. */
 async function loadOverrides(): Promise<Overrides> {
-  if (BLOB_STORE_ENABLED) return (await readDocument<Overrides>("properties")) ?? {};
+  if (STORE_ENABLED) return (await readDocument<Overrides>("properties")) ?? {};
   try {
     return JSON.parse(await readFile(FILE, "utf8")) as Overrides;
   } catch {
@@ -56,7 +56,7 @@ const readOverrides = unstable_cache(loadOverrides, ["alaser-store-properties"],
 });
 
 async function writeOverrides(overrides: Overrides): Promise<void> {
-  if (BLOB_STORE_ENABLED) {
+  if (STORE_ENABLED) {
     await writeDocument("properties", overrides);
   } else {
     await mkdir(DATA_DIR, { recursive: true });

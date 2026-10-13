@@ -393,7 +393,7 @@
     "leadsEmpty": "No enquiries yet. They arrive here the moment someone sends the form.",
     "exportCsv": "Export CSV",
     "settingsTitle": "Settings",
-    "leadsEphemeral": "This deployment has no Blob store connected, so leads are kept in temporary storage: this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Connect the project’s Blob store in Vercel to make this list permanent.",
+    "leadsEphemeral": "This deployment is not connected to Convex, so leads are kept in temporary storage: this list resets and may not show every enquiry. Enquiries are also written to the deployment logs. Set CONVEX_URL and ALASER_SERVER_KEY in Vercel to make this list permanent.",
     "photosTitle": "Photos",
     "photosIntro": "The first photo is the cover: it shows on the card and at the top of the listing. Tap the star to make any photo the cover.",
     "photosEmpty": "No photos yet",

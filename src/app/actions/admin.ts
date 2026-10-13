@@ -11,7 +11,7 @@ import {
   isAuthed,
   verifyPassword,
 } from "@/lib/admin-auth";
-import { deleteFiles } from "@/lib/data/blob-store";
+import { deleteFiles, photoUploadUrl, registerPhoto } from "@/lib/data/convex-store";
 import { readDetailsForm, type DetailField } from "@/lib/data/details-form";
 import { LEAD_STATUSES, setLeadStatus, type LeadStatus } from "@/lib/data/inquiries";
 import {
@@ -131,6 +131,24 @@ export type SaveState = {
   blocked?: SiteRequirement[];
   error?: "not-found";
 };
+
+/**
+ * Photographs go from the browser straight to Convex storage, so ten upload
+ * in parallel with real progress and the bytes never pass through a
+ * function. The session is checked HERE, before the one-time address is
+ * handed out: without it anyone who found the action could write to the
+ * client's storage.
+ */
+export async function startPhotoUpload(): Promise<string> {
+  await assertAuthed();
+  return photoUploadUrl();
+}
+
+/** Record a finished upload; returns the URL the gallery will hold. */
+export async function finishPhotoUpload(storageId: string, filename: string): Promise<string> {
+  await assertAuthed();
+  return registerPhoto(storageId, filename);
+}
 
 /**
  * Save a unit - everything on the editor, photographs included, in one go.

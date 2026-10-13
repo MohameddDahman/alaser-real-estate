@@ -7,14 +7,14 @@
  * into an open image proxy anyone can bill us for - anything off-list is
  * rendered unoptimised. It still displays; it simply is not resized for us.
  *
- * Once Convex storage is wired, every image lives on a convex host and this
- * function returns true for all of them.
+ * Every photograph the client uploads lives on a convex host, so this
+ * returns true for all of them.
  */
 const OPTIMISED_HOSTS = [
   "images.unsplash.com",
-  ".public.blob.vercel-storage.com",
-  ".convex.cloud",
-  ".convex.site",
+  // Keep in step with images.remotePatterns in next.config.ts.
+  "accurate-leopard-183.convex.cloud",
+  "rightful-lyrebird-844.convex.cloud",
 ];
 
 export function isOptimisable(src: string): boolean {

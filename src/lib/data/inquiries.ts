@@ -3,14 +3,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { DATA_DIR, IS_EPHEMERAL_STORE } from "./data-dir";
-import { BLOB_STORE_ENABLED, appendRecord, readDocument, readRecords, writeDocument } from "./blob-store";
+import { STORE_ENABLED, appendRecord, readDocument, readRecords, writeDocument } from "./convex-store";
 import type { Inquiry } from "./types";
 
 /**
  * Lead storage.
  *
- * Deployed, each enquiry is its own sealed file in the project's Blob store
- * (see blob-store.ts): durable, and two enquiries sent at once can never
+ * Deployed, each enquiry is its own row in the client's Convex project
+ * (see convex-store.ts): durable, and two enquiries sent at once can never
  * overwrite each other. In development it is a JSON file in .data/.
  *
  * An enquiry is never rewritten. Where the client has got to with it - called,
@@ -47,11 +47,11 @@ async function readAll(): Promise<StoredInquiry[]> {
 }
 
 async function loadRecords(): Promise<StoredInquiry[]> {
-  return BLOB_STORE_ENABLED ? readRecords<StoredInquiry>("inquiries") : readAll();
+  return STORE_ENABLED ? readRecords<StoredInquiry>("inquiries") : readAll();
 }
 
 async function loadStatuses(): Promise<StatusMap> {
-  if (BLOB_STORE_ENABLED) return (await readDocument<StatusMap>("lead-status")) ?? {};
+  if (STORE_ENABLED) return (await readDocument<StatusMap>("lead-status")) ?? {};
   try {
     return JSON.parse(await readFile(STATUS_FILE, "utf8")) as StatusMap;
   } catch {
@@ -77,11 +77,11 @@ export async function saveInquiry(inquiry: Inquiry): Promise<StoredInquiry> {
    * record goes to the runtime logs, where it can always be recovered.
    * Otherwise the logs carry no phone numbers.
    */
-  const durable = BLOB_STORE_ENABLED || !IS_EPHEMERAL_STORE;
+  const durable = STORE_ENABLED || !IS_EPHEMERAL_STORE;
   if (!durable) console.info("[lead]", JSON.stringify(row));
 
   try {
-    if (BLOB_STORE_ENABLED) {
+    if (STORE_ENABLED) {
       await appendRecord("inquiries", row);
     } else {
       rows.unshift(row);
@@ -111,7 +111,7 @@ export async function setLeadStatus(id: string, status: LeadStatus): Promise<voi
   // Straight from the store, so the write builds on what is really there.
   const statuses = await loadStatuses();
   statuses[id] = { status, at: Date.now() };
-  if (BLOB_STORE_ENABLED) {
+  if (STORE_ENABLED) {
     await writeDocument("lead-status", statuses);
   } else {
     await mkdir(DATA_DIR, { recursive: true });

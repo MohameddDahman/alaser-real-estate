@@ -6,16 +6,15 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
-    // Convex serves listing media from its own storage origin. Kept here so the
-    // swap from seed data to live Convex needs no config change.
+    // The client's photographs, in Convex file storage: this project's two
+    // deployments only (production, then development and previews), so the
+    // optimiser cannot be used to resize anyone else's files on our bill.
     remotePatterns: [
-      { protocol: "https", hostname: "*.convex.cloud" },
-      { protocol: "https", hostname: "*.convex.site" },
+      { protocol: "https", hostname: "accurate-leopard-183.convex.cloud", pathname: "/api/storage/**" },
+      { protocol: "https", hostname: "rightful-lyrebird-844.convex.cloud", pathname: "/api/storage/**" },
       // Placeholder photography only - see src/content/photos.ts. Removed
       // once the client's own shoots are in Convex storage.
       { protocol: "https", hostname: "images.unsplash.com" },
-      // Uploads from the dashboard live here until Convex storage exists.
-      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
   experimental: {

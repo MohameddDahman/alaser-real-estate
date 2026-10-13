@@ -2,13 +2,13 @@ import "server-only";
 import os from "node:os";
 import path from "node:path";
 
-import { BLOB_STORE_ENABLED } from "./blob-store";
+import { STORE_ENABLED } from "./convex-store";
 
 /**
- * Where the JSON store lives when the Blob store is not in use.
+ * Where the JSON store lives when Convex is not in use.
  *
  * Locally that is .data/ (gitignored: leads carry phone numbers). Deployed,
- * the Blob store takes over (see blob-store.ts); only a deployment without
+ * Convex takes over (see convex-store.ts); only a deployment without
  * one falls back to `os.tmpdir()`, which a serverless function may write but
  * does not keep across a cold start or a redeploy.
  */
@@ -18,5 +18,5 @@ export const DATA_DIR = ON_SERVERLESS
   ? path.join(os.tmpdir(), "alaser-data")
   : path.join(process.cwd(), ".data");
 
-/** True only when the data would vanish: serverless, and no Blob store. */
-export const IS_EPHEMERAL_STORE = ON_SERVERLESS && !BLOB_STORE_ENABLED;
+/** True only when the data would vanish: serverless, and no Convex. */
+export const IS_EPHEMERAL_STORE = ON_SERVERLESS && !STORE_ENABLED;
