@@ -169,7 +169,8 @@
     },
     "tenure": {
       "tamleek": "Freehold",
-      "new-law": "New-law rent"
+      "new-law": "New-law rent",
+      "old-law": "Old-law rent"
     },
     "finishingLevel": {
       "core-shell": "Core and shell",

@@ -149,6 +149,15 @@ export const tenures = [
       ar: "عقد إيجار محدد المدة بالقانون الجديد، يُجدد بالاتفاق.",
     },
   },
+  /** Added Oct 2026 at the client's request: they also handle old-law units. */
+  {
+    slug: "old-law",
+    name: { en: "Old-law rent", ar: "إيجار قديم" },
+    note: {
+      en: "A lease under the old rent law, as it stands on the unit.",
+      ar: "عقد إيجار بالقانون القديم كما هو قائم على الوحدة.",
+    },
+  },
 ] as const;
 
 export type TenureSlug = (typeof tenures)[number]["slug"];

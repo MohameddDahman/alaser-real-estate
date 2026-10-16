@@ -169,7 +169,8 @@
     },
     "tenure": {
       "tamleek": "تمليك",
-      "new-law": "إيجار قانون جديد"
+      "new-law": "إيجار قانون جديد",
+      "old-law": "إيجار قديم"
     },
     "finishingLevel": {
       "core-shell": "محارة",
