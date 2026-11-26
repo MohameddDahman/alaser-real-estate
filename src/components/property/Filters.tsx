@@ -3,26 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useQueryStates } from "nuqs";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpDown, Check, Search, SlidersHorizontal, X } from "lucide-react";
 
-import { filterParsers, SORTS, activeFilterCount, type RawFilters } from "@/lib/filters";
+import { SORTS, activeFilterCount, type RawFilters } from "@/lib/filters";
 import { areas, propertyTypes, tenures } from "@/content/client-facts";
-import { useFilterTransition } from "./FiltersProvider";
+import { useFilters } from "./filter-state";
 import { Select } from "@/components/ui/Select";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-
-function useFilters() {
-  const { start } = useFilterTransition();
-  return useQueryStates(filterParsers, {
-    shallow: false,
-    history: "push",
-    startTransition: start,
-    clearOnDefault: true,
-  });
-}
 
 const CLEARED = {
   q: null,

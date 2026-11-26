@@ -1,6 +1,7 @@
 import "server-only";
 
 import { PLANS } from "./plans";
+import { queryProperties } from "./query";
 import { allProperties } from "./store";
 import type {
   FloorPlan,
@@ -137,60 +138,9 @@ async function publicRows(): Promise<Property[]> {
 /* -------------------------------------------------------------------------- */
 
 export async function getProperties(filters: PropertyFilters = {}): Promise<Property[]> {
-  let rows = await publicRows();
-
-  if (filters.q) {
-    // One box answers the ways people actually ask: "ALS-0412", "Kaabish",
-    // "Zayed", "villa" - in either language.
-    const q = filters.q.trim().toLowerCase();
-    rows = rows.filter((p) => {
-      const area = areas.find((a) => a.slug === p.location.area);
-      const type = propertyTypes.find((t) => t.slug === p.propertyType);
-      return [
-        p.title.en,
-        p.title.ar,
-        p.refCode,
-        p.location.street?.en ?? "",
-        p.location.street?.ar ?? "",
-        area?.name.en ?? "",
-        area?.name.ar ?? "",
-        type?.name.en ?? "",
-        type?.name.ar ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
-    });
-  }
-  if (filters.area?.length) rows = rows.filter((p) => filters.area!.includes(p.location.area));
-  if (filters.type?.length) rows = rows.filter((p) => filters.type!.includes(p.propertyType));
-  if (filters.tenure?.length) rows = rows.filter((p) => filters.tenure!.includes(p.tenure));
-  if (filters.listingType) rows = rows.filter((p) => p.listingType === filters.listingType);
-  if (filters.beds) rows = rows.filter((p) => p.specs.bedrooms >= filters.beds!);
-  if (filters.minArea) rows = rows.filter((p) => p.specs.builtUpArea >= filters.minArea!);
-  if (filters.minPrice)
-    rows = rows.filter((p) => (p.price.amount ?? Infinity) >= filters.minPrice!);
-  if (filters.maxPrice)
-    rows = rows.filter((p) => (p.price.amount ?? 0) <= filters.maxPrice!);
-
-  const sorted = [...rows].sort((a, b) => {
-    switch (filters.sort) {
-      case "price-asc":
-        return (a.price.amount ?? Infinity) - (b.price.amount ?? Infinity);
-      case "price-desc":
-        return (b.price.amount ?? 0) - (a.price.amount ?? 0);
-      case "area-desc":
-        return b.specs.builtUpArea - a.specs.builtUpArea;
-      default:
-        return (b.publishedAt ?? 0) - (a.publishedAt ?? 0);
-    }
-  });
-
-  // Available first within the chosen sort: a sold unit is useful context but
-  // must never sit above something a visitor can actually buy.
-  return sorted
-    .sort((a, b) => Number(b.status === "available") - Number(a.status === "available"))
-    .map(toPublic);
+  // Projected before the query, not after, so a search can never match a
+  // field the visitor is not allowed to see. See ./query.ts.
+  return queryProperties((await publicRows()).map(toPublic), filters);
 }
 
 export async function getPropertyBySlug(slug: string): Promise<Property | null> {

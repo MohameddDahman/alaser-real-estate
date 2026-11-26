@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SearchX } from "lucide-react";
@@ -6,17 +7,21 @@ import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { PropertyRow } from "@/components/property/PropertyCard";
 import { FiltersProvider } from "@/components/property/FiltersProvider";
-import { FilterControls, FilterSheet, KeywordSearch, SortSelect } from "@/components/property/Filters";
-import { ResultsShell } from "@/components/property/ResultsShell";
+import { FilterControls, KeywordSearch, SortSelect } from "@/components/property/Filters";
+import { FilterSync } from "@/components/property/filter-state";
+import {
+  ListingsProvider,
+  LiveFilterSheet,
+  ResultsList,
+  ResultsTitle,
+  type ListingItem,
+} from "@/components/property/Listings";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { filterCache } from "@/lib/filters.server";
-import { toPropertyFilters, type RawFilters } from "@/lib/filters";
 import { getAreaCounts, getProperties } from "@/lib/data";
-import { areas } from "@/content/client-facts";
+import { factsOf } from "@/lib/data/query";
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -25,78 +30,74 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: t("metaTitle"), description: t("metaDescription") };
 }
 
-export default async function PropertiesPage({ params, searchParams }: Props) {
+/**
+ * Built once per language with every public unit, and filtered in the browser.
+ *
+ * It used to read the query string and filter on the server, which made it the
+ * one page on the site rendered fresh for every visit and every filter click.
+ * The admin's saves purge it from the root layout like every other page (see
+ * refreshSite in app/actions/admin.ts), so a new unit still appears at once.
+ */
+export default async function PropertiesPage({ params }: Props) {
   const { locale: raw } = await params;
   const locale = raw as Locale;
   setRequestLocale(locale);
 
-  const parsed = (await filterCache.parse(searchParams)) as unknown as RawFilters;
   const t = await getTranslations("listings");
   const tn = await getTranslations("nav");
 
-  const [properties, counts] = await Promise.all([
-    getProperties(toPropertyFilters(parsed)),
-    getAreaCounts(),
-  ]);
+  const [properties, counts] = await Promise.all([getProperties(), getAreaCounts()]);
 
-  // "Faisal: 3 properties found" when one area is chosen; Giza otherwise.
-  const onlyArea = parsed.area.length === 1 ? areas.find((a) => a.slug === parsed.area[0]) : null;
-  const place = onlyArea ? onlyArea.name[locale] : t("placeAll");
-
-  // Changes whenever the query changes, which is what re-triggers the list's
-  // entrance so results arrive rather than snap.
-  const signature = JSON.stringify(parsed);
+  const items: ListingItem[] = properties.map((property, i) => ({
+    facts: factsOf(property),
+    row: <PropertyRow property={property} priority={i < 2} />,
+  }));
 
   return (
     <FiltersProvider>
-      <div className="shell pb-16 pt-5 lg:pb-24">
-        <Breadcrumbs
-          rtl={locale === "ar"}
-          items={[{ label: tn("home"), href: "/" }, { label: t("title") }]}
-        />
+      {/* The only reader of the query string; renders nothing. */}
+      <Suspense fallback={null}>
+        <FilterSync />
+      </Suspense>
 
-        <div className="mt-4 max-w-3xl">
-          <KeywordSearch />
-        </div>
+      <ListingsProvider items={items}>
+        <div className="shell pb-16 pt-5 lg:pb-24">
+          <Breadcrumbs
+            rtl={locale === "ar"}
+            items={[{ label: tn("home"), href: "/" }, { label: t("title") }]}
+          />
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-8">
-          <aside className="hidden lg:block">
-            <div className="sticky top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-line bg-canvas">
-              <FilterControls counts={counts} />
-            </div>
-          </aside>
+          <div className="mt-4 max-w-3xl">
+            <KeywordSearch />
+          </div>
 
-          <section aria-labelledby="results-title" className="min-w-0">
-            <h1 id="results-title" className="text-title font-bold text-fg">
-              {t("resultsTitle", { place, count: properties.length })}
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-fg-muted">{t("lead")}</p>
-
-            <div className="mt-4 flex items-center justify-between gap-3 border-b border-line pb-4">
-              <FilterSheet counts={counts} resultCount={properties.length} />
-              <div className="ms-auto min-w-0">
-                <SortSelect />
+          <div className="mt-8 grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-8">
+            <aside className="hidden lg:block">
+              <div className="sticky top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-line bg-canvas">
+                <FilterControls counts={counts} />
               </div>
-            </div>
+            </aside>
 
-            <div className="mt-4">
-              <ResultsShell signature={signature} count={properties.length}>
-                {properties.length === 0 ? (
-                  <EmptyState />
-                ) : (
-                  <ol className="space-y-4">
-                    {properties.map((property, i) => (
-                      <li key={property._id}>
-                        <PropertyRow property={property} priority={i < 2} />
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </ResultsShell>
-            </div>
-          </section>
+            <section aria-labelledby="results-title" className="min-w-0">
+              <h1 id="results-title" className="text-title font-bold text-fg">
+                <ResultsTitle />
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-fg-muted">{t("lead")}</p>
+
+              <div className="mt-4 flex items-center justify-between gap-3 border-b border-line pb-4">
+                <LiveFilterSheet counts={counts} />
+                <div className="ms-auto min-w-0">
+                  <SortSelect />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <ResultsList empty={<EmptyState />} />
+              </div>
+            </section>
+          </div>
         </div>
-      </div>
+      </ListingsProvider>
     </FiltersProvider>
   );
 }
