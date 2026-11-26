@@ -17,8 +17,8 @@ import {
   type ListingItem,
 } from "@/components/property/Listings";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { getAreaCounts, getProperties } from "@/lib/data";
-import { factsOf } from "@/lib/data/query";
+import { getAreaCounts, getPublicProperties } from "@/lib/data";
+import { factsOf, queryProperties } from "@/lib/data/query";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -46,11 +46,20 @@ export default async function PropertiesPage({ params }: Props) {
   const t = await getTranslations("listings");
   const tn = await getTranslations("nav");
 
-  const [properties, counts] = await Promise.all([getProperties(), getAreaCounts()]);
+  // Unsorted, in the store's own order: the browser sorts from the same input
+  // the server always did, so units that tie on price or area keep their order.
+  const [properties, counts] = await Promise.all([getPublicProperties(), getAreaCounts()]);
 
-  const items: ListingItem[] = properties.map((property, i) => ({
+  // The two units the page opens with get their photos loaded first.
+  const opening = new Set(
+    queryProperties(properties)
+      .slice(0, 2)
+      .map((property) => property._id),
+  );
+
+  const items: ListingItem[] = properties.map((property) => ({
     facts: factsOf(property),
-    row: <PropertyRow property={property} priority={i < 2} />,
+    row: <PropertyRow property={property} priority={opening.has(property._id)} />,
   }));
 
   return (

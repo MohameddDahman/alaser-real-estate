@@ -137,10 +137,20 @@ async function publicRows(): Promise<Property[]> {
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Every public unit, projected for visitors, in the store's own order. The
+ * listings page filters this in the browser, and it has to be the same input
+ * getProperties sorts: sorting keeps ties in the order it receives them, so a
+ * pre-sorted copy would reorder units that share a price or a floor area.
+ */
+export async function getPublicProperties(): Promise<Property[]> {
+  return (await publicRows()).map(toPublic);
+}
+
 export async function getProperties(filters: PropertyFilters = {}): Promise<Property[]> {
   // Projected before the query, not after, so a search can never match a
   // field the visitor is not allowed to see. See ./query.ts.
-  return queryProperties((await publicRows()).map(toPublic), filters);
+  return queryProperties(await getPublicProperties(), filters);
 }
 
 export async function getPropertyBySlug(slug: string): Promise<Property | null> {
