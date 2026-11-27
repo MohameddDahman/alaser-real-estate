@@ -58,6 +58,17 @@ const WHY = [
   { key: "3", icon: Receipt },
 ] as const;
 
+/**
+ * This page is the route for any single-segment address, so without this a
+ * request for /wp-login.php, /.env or /apple-touch-icon.png was treated as a
+ * locale and rendered by a server function, only to end in notFound(). Only
+ * the built locales exist; anything else gets the static 404.
+ *
+ * Set here, not on the [locale] layout: a layout passes it to every route
+ * below it, and property pages must keep rendering units added after a build.
+ */
+export const dynamicParams = false;
+
 export default async function HomePage({
   params,
 }: {
